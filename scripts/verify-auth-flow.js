@@ -95,7 +95,7 @@ const main = async () => {
         headers: { Cookie: cookie },
       });
       assert.equal(privatePage.status, 200);
-      assert.match(await privatePage.text(), /Welcome/);
+      assert.match(await privatePage.text(), /Clinical workspace/);
     }
 
     const privateApi = await request("/api/private/session", {

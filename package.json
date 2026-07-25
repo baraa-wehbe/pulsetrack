@@ -21,17 +21,22 @@
     "db:migrate:status": "prisma migrate status",
     "clinician:create": "tsx --tsconfig jsconfig.json scripts/create-clinician.js",
     "db:seed": "prisma db seed",
-    "test": "tsx --tsconfig jsconfig.json --test prisma/seed.test.js src/server/auth/auth.test.js src/server/auth/create-clinician.test.js",
+    "test": "tsx --tsconfig jsconfig.json --test prisma/seed.test.js src/server/auth/auth.test.js src/server/auth/create-clinician.test.js src/server/preferences/preferences.test.js src/components/application-shell.test.js",
     "test:seed": "tsx --test prisma/seed.test.js",
     "test:seed:integration": "tsx --test prisma/seed.integration.test.js",
     "test:auth": "tsx --tsconfig jsconfig.json --test src/server/auth/auth.test.js",
     "test:auth:integration": "tsx --tsconfig jsconfig.json --test src/server/auth/auth.integration.test.js",
     "test:auth:e2e": "tsx --tsconfig jsconfig.json scripts/verify-auth-flow.js",
-    "test:clinician-create": "tsx --tsconfig jsconfig.json --test src/server/auth/create-clinician.test.js"
+    "test:clinician-create": "tsx --tsconfig jsconfig.json --test src/server/auth/create-clinician.test.js",
+    "test:shell": "tsx --tsconfig jsconfig.json --test src/server/preferences/preferences.test.js src/components/application-shell.test.js",
+    "test:shell:e2e": "tsx --tsconfig jsconfig.json scripts/verify-shell-flow.js",
+    "test:shell:browser": "tsx --tsconfig jsconfig.json scripts/verify-shell-browser.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-dropdown-menu": "^2.1.24",
     "@tailwindcss/postcss": "^4.3.3",
     "argon2": "^0.45.1",
     "dotenv": "^17.4.2",
@@ -44,9 +49,11 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "axe-core": "^4.12.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.11",
     "eslint-config-prettier": "^10.1.8",
+    "playwright-core": "^1.62.0",
     "prettier": "^3.9.6",
     "prisma": "^7.9.0",
     "tsx": "^4.23.1"

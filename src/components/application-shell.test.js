@@ -1,0 +1,89 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const readSource = (relativePath) =>
+  readFile(new URL(`../${relativePath}`, import.meta.url), "utf8");
+
+test("private layout authenticates once and renders the shared shell", async () => {
+  const source = await readSource("app/(private)/layout.js");
+
+  assert.match(source, /requireCurrentClinician\(\)/);
+  assert.match(source, /<AuthenticatedShell/);
+  assert.equal(source.match(/requireCurrentClinician\(\)/g)?.length, 1);
+});
+
+test("public login page does not render the authenticated shell", async () => {
+  const source = await readSource("app/(public)/login/page.js");
+
+  assert.doesNotMatch(source, /AuthenticatedShell|AppNavigation/);
+});
+
+test("shell exposes an accessible skip link and stable main landmark", async () => {
+  const source = await readSource("components/authenticated-shell.js");
+
+  assert.match(source, /href="#main-content"/);
+  assert.match(source, /id="main-content"/);
+  assert.match(source, /tabIndex=\{-1\}/);
+});
+
+test("navigation uses semantic links, current-page state, and accessible Radix menus", async () => {
+  const source = await readSource("components/app-navigation.js");
+
+  assert.match(source, /<nav/);
+  assert.match(source, /<Link/);
+  assert.match(source, /aria-current=/);
+  assert.match(source, /DropdownMenu\.Trigger/);
+  assert.match(source, /Dialog\.Trigger/);
+  assert.match(source, /Dialog\.Close/);
+  assert.match(source, /aria-label=\{messages\.openNavigation\}/);
+  assert.match(source, /aria-label=\{messages\.closeNavigation\}/);
+  assert.match(source, /onClick=\{onSelect\}/);
+  assert.equal(source.match(/PRIMARY_NAVIGATION\.map/g)?.length, 2);
+  assert.equal(source.match(/DASHBOARD_NAVIGATION\.map/g)?.length, 2);
+});
+
+test("shell sends only safe clinician fields to visible identity UI", async () => {
+  const source = await readSource("components/app-navigation.js");
+
+  assert.match(source, /clinician\.fullName/);
+  assert.match(source, /clinician\.email/);
+  assert.doesNotMatch(
+    source,
+    /clinician\.(password|passwordHash|status|session|token)/,
+  );
+});
+
+test("preference UI has accessible state and no client storage source", async () => {
+  const [preferenceSource, navigationSource, rootLayoutSource] =
+    await Promise.all([
+      readSource("components/preference-controls.js"),
+      readSource("components/app-navigation.js"),
+      readSource("app/layout.js"),
+    ]);
+  const combined = `${preferenceSource}\n${navigationSource}\n${rootLayoutSource}`;
+
+  assert.match(preferenceSource, /aria-pressed=/);
+  assert.match(preferenceSource, /role="group"/);
+  assert.match(preferenceSource, /window\.location\.reload\(\)/);
+  assert.doesNotMatch(combined, /localStorage|sessionStorage/);
+  assert.doesNotMatch(combined, /tabIndex=\{[1-9]/);
+});
+
+test("root layout applies server-resolved language, direction, and theme", async () => {
+  const source = await readSource("app/layout.js");
+
+  assert.match(source, /getRequestPreferences\(\)/);
+  assert.match(source, /lang=\{language\}/);
+  assert.match(source, /dir=\{getDocumentDirection\(language\)\}/);
+  assert.match(source, /className=\{theme === "dark"/);
+  assert.doesNotMatch(source, /useEffect|window|localStorage/);
+});
+
+test("preference endpoint remains behind clinician authentication", async () => {
+  const source = await readSource("app/api/private/preferences/route.js");
+
+  assert.match(source, /withClinicianAuthentication/);
+  assert.match(source, /preferenceUpdateSchema\.safeParse/);
+  assert.doesNotMatch(source, /AUTH_COOKIE_NAME|passwordHash/);
+});

@@ -115,6 +115,26 @@ server layout, and private APIs live under `/api/private` and use the centralize
 clinician authentication wrapper. There are no patient accounts or patient
 authentication flows.
 
+## Authenticated application shell
+
+Authenticated clinicians share one protected responsive shell with destinations
+for Patients, Lab Uploads, Clinic Dashboard, and Patient Dashboard. The
+destination pages are intentionally limited to accessible placeholders until
+their later feature tasks.
+
+Language and theme preferences use separate first-party cookies:
+
+- `pulsetrack_language`: `en` or `ar`; default `en`
+- `pulsetrack_theme`: `light` or `dark`; default `light`
+
+Valid cookies take precedence over the fixed defaults. Invalid or missing values
+fall back deterministically to English and light mode. Both cookies are
+`HttpOnly`, `SameSite=Lax`, scoped to `/`, valid for one year, and `Secure` in
+production. The root server layout reads them before rendering and applies the
+document language, direction, and theme, so Arabic RTL and dark mode do not rely
+on client-only initialization. Logout does not clear these non-sensitive
+preferences.
+
 ### Create a development clinician
 
 Create the first local clinician with the administrative CLI:
@@ -145,6 +165,7 @@ npm run db:down      # Stop local PostgreSQL
 npm run clinician:create -- --email <email> --password "<password>" --name "<name>"
 npm test             # Run the unit test suite
 npm run test:auth    # Run clinician authentication unit tests
+npm run test:shell   # Run shell, navigation, language, RTL, and theme tests
 ```
 
 ## Source structure
