@@ -88,6 +88,16 @@ npm run db:deploy
 uses migrations as its reproducible database history; `prisma db push` is not
 the normal migration workflow.
 
+Seed the immutable DSMA-8 questionnaire and supported lab-test catalog after
+applying migrations:
+
+```bash
+npm run db:seed
+```
+
+The seed is idempotent. It rejects conflicting questionnaire version `1.0` or
+lab mappings instead of overwriting established reference data.
+
 ## Commands
 
 ```bash

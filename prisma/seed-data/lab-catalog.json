@@ -1,0 +1,26 @@
+[
+  {
+    "code": "GLU-F",
+    "name": "Fasting Glucose",
+    "loincCode": "1558-6",
+    "defaultUnit": "mg/dL",
+    "defaultRefLow": "70",
+    "defaultRefHigh": "99"
+  },
+  {
+    "code": "HBA1C",
+    "name": "Hemoglobin A1c",
+    "loincCode": "4548-4",
+    "defaultUnit": "%",
+    "defaultRefLow": "4.0",
+    "defaultRefHigh": "5.6"
+  },
+  {
+    "code": "SBP",
+    "name": "Systolic Blood Pressure",
+    "loincCode": "8480-6",
+    "defaultUnit": "mmHg",
+    "defaultRefLow": "90",
+    "defaultRefHigh": "120"
+  }
+]

@@ -3,4 +3,5 @@ coverage
 node_modules
 out
 package-lock.json
+prisma/seed-data/questionnaire-dsma8.json
 src/generated/prisma
