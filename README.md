@@ -6,8 +6,9 @@ patients.
 ## Current status
 
 This repository contains the application and database foundation, immutable
-reference-data seeding, and clinician-only credentials authentication. Patient
-management, questionnaire delivery, lab importing, dashboards, FHIR, and AI
+reference-data seeding, clinician-only credentials authentication, the
+authenticated application shell, and clinician-managed patient records.
+Questionnaire delivery, lab importing, dashboard analytics, FHIR, and AI
 features are not implemented.
 
 ## Requirements
@@ -119,7 +120,7 @@ authentication flows.
 
 Authenticated clinicians share one protected responsive shell with destinations
 for Patients, Lab Uploads, Clinic Dashboard, and Patient Dashboard. The
-destination pages are intentionally limited to accessible placeholders until
+lab-upload and dashboard destinations remain accessible placeholders until
 their later feature tasks.
 
 Language and theme preferences use separate first-party cookies:
@@ -149,6 +150,25 @@ It does not print the password or stored password hash. This remains a local
 administrative command; PulseTrack does not expose a registration page or
 account-creation API.
 
+## Patient management
+
+Authenticated active clinicians can list, create, view, edit, and archive
+patient records under `/patients`. Editable fields are MRN, first name, last
+name, date of birth, biological sex, optional email, and optional phone.
+
+One shared Zod module validates browser and API input. MRNs are trimmed and
+uppercased, emails are trimmed and lowercased, optional blank contact values
+become `null`, and future or invalid calendar dates are rejected. PostgreSQL’s
+existing unique MRN constraint remains authoritative; normalized conflicts
+return a safe `409` field error.
+
+Archive is a soft delete through the existing `archived_at` column. The default
+list queries only rows where `archived_at IS NULL`, while archived records
+remain available by direct detail URL. Create, changed update, and first archive
+mutations write clinician-attributed entries to the existing `audit_logs` table
+inside the same Prisma transaction. No patient accounts, passwords, sessions,
+or login routes exist.
+
 ## Commands
 
 ```bash
@@ -166,6 +186,7 @@ npm run clinician:create -- --email <email> --password "<password>" --name "<nam
 npm test             # Run the unit test suite
 npm run test:auth    # Run clinician authentication unit tests
 npm run test:shell   # Run shell, navigation, language, RTL, and theme tests
+npm run test:patients # Run patient validation and UI architecture tests
 ```
 
 ## Source structure
@@ -174,11 +195,12 @@ npm run test:shell   # Run shell, navigation, language, RTL, and theme tests
 - `src/components`: shared UI components
 - `src/config`: centralized application configuration and environment validation
 - `src/lib`: shared framework-independent utilities
-- `src/server`: server-only authentication and future backend domain code
+- `src/server`: server-only authentication, patient services, and future domain code
 - `src/modules`: domain-oriented architectural placeholders
 - `prisma`: database schema, migrations, and reviewed hardening SQL
 
-The domain folders under `src/modules` reserve boundaries for future work in
-authentication, clinicians, patients, questionnaires, lab results, dashboards,
-notifications, FHIR, and AI insights. They are inactive placeholders and contain
-no feature implementation.
+The domain folders under `src/modules` document boundaries for authentication,
+clinicians, patients, questionnaires, lab results, dashboards, notifications,
+FHIR, and AI insights. Runtime implementation remains in the App Router,
+components, shared libraries, and server-only services rather than a separate
+backend application.
