@@ -9,13 +9,27 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
-    "format:check": "prettier . --check"
+    "format:check": "prettier . --check",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:status": "docker compose ps",
+    "prisma:format": "prisma format",
+    "prisma:validate": "prisma validate",
+    "prisma:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.9.0",
+    "@prisma/client": "^7.9.0",
     "@tailwindcss/postcss": "^4.3.3",
+    "dotenv": "^17.4.2",
     "next": "^16.2.11",
+    "pg": "^8.22.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3"
   },
@@ -23,6 +37,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.2.11",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.9.6"
+    "prettier": "^3.9.6",
+    "prisma": "^7.9.0"
   }
 }

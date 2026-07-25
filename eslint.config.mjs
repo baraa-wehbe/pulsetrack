@@ -5,5 +5,11 @@ import prettierConfig from "eslint-config-prettier/flat";
 export default defineConfig([
   ...nextConfig,
   prettierConfig,
-  globalIgnores([".next/**", "coverage/**", "node_modules/**", "out/**"]),
+  globalIgnores([
+    ".next/**",
+    "coverage/**",
+    "node_modules/**",
+    "out/**",
+    "src/generated/prisma/**",
+  ]),
 ]);

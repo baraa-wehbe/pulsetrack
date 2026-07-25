@@ -1,0 +1,436 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ClinicianStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum AppLocale {
+  EN
+  AR
+}
+
+enum ThemePreference {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
+enum BiologicalSex {
+  MALE
+  FEMALE
+  OTHER
+  UNKNOWN
+}
+
+enum PatientOrigin {
+  LOCAL
+  FHIR
+}
+
+enum FhirOwnership {
+  NONE
+  CANDIDATE_OWNED
+  EXTERNAL_READ_ONLY
+}
+
+enum FhirSyncStatus {
+  NOT_SYNCED
+  PENDING
+  SYNCED
+  FAILED
+}
+
+enum AssessmentStatus {
+  SCHEDULED
+  SENT
+  COMPLETED
+  EXPIRED
+  FAILED
+  CANCELLED
+}
+
+enum RiskBand {
+  LOW
+  MODERATE
+  HIGH
+  VERY_HIGH
+}
+
+enum DeliveryStatus {
+  SUCCEEDED
+  FAILED
+}
+
+enum LabImportStatus {
+  PROCESSING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+}
+
+enum LabImportRowStatus {
+  ACCEPTED
+  REJECTED
+  DUPLICATE
+}
+
+enum LabResultSource {
+  CSV
+  FHIR
+}
+
+enum FhirSyncDirection {
+  PUSH
+  PULL
+}
+
+enum FhirSyncTrigger {
+  EVENT
+  MANUAL
+  CRON
+}
+
+enum FhirSyncRunStatus {
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+}
+
+enum FhirSyncTaskStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+enum FhirResourceType {
+  PATIENT
+  OBSERVATION
+}
+
+enum FhirSyncScope {
+  ALL
+  PATIENT
+  OBSERVATION
+}
+
+enum FhirOperation {
+  CREATE
+  UPDATE
+  IMPORT
+  SKIP
+}
+
+enum AuditActorType {
+  CLINICIAN
+  PATIENT_LINK
+  SYSTEM
+}
+
+model Clinician {
+  id              String          @id @default(uuid()) @db.Uuid
+  email           String          @unique(map: "clinicians_email_key") @db.VarChar(320)
+  passwordHash    String          @map("password_hash") @db.Text
+  fullName        String          @map("full_name") @db.VarChar(160)
+  status          ClinicianStatus @default(ACTIVE)
+  preferredLocale AppLocale       @default(EN) @map("preferred_locale")
+  themePreference ThemePreference @default(SYSTEM) @map("theme_preference")
+  lastLoginAt     DateTime?       @map("last_login_at") @db.Timestamptz(3)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  patientsCreated    Patient[]     @relation("PatientCreatedBy")
+  assessmentsCreated Assessment[]  @relation("AssessmentCreatedBy")
+  labImports         LabImport[]
+  fhirSyncRuns       FhirSyncRun[]
+  auditLogs          AuditLog[]
+
+  @@map("clinicians")
+}
+
+model Patient {
+  id                String         @id @default(uuid()) @db.Uuid
+  mrn               String         @unique(map: "patients_mrn_key") @db.VarChar(50)
+  firstName         String         @map("first_name") @db.VarChar(100)
+  lastName          String         @map("last_name") @db.VarChar(100)
+  dateOfBirth       DateTime       @map("date_of_birth") @db.Date
+  sex               BiologicalSex
+  email             String?        @db.VarChar(320)
+  phone             String?        @db.VarChar(32)
+  origin            PatientOrigin  @default(LOCAL)
+  fhirResourceId    String?        @unique(map: "patients_fhir_resource_id_key") @map("fhir_resource_id") @db.VarChar(100)
+  fhirVersionId     String?        @map("fhir_version_id") @db.VarChar(100)
+  fhirOwnership     FhirOwnership  @default(NONE) @map("fhir_ownership")
+  fhirSyncStatus    FhirSyncStatus @default(NOT_SYNCED) @map("fhir_sync_status")
+  fhirLastSyncedAt  DateTime?      @map("fhir_last_synced_at") @db.Timestamptz(3)
+  fhirLastSyncError String?        @map("fhir_last_sync_error") @db.Text
+  createdById       String?        @map("created_by_id") @db.Uuid
+  archivedAt        DateTime?      @map("archived_at") @db.Timestamptz(3)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  createdBy     Clinician?     @relation("PatientCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  assessments   Assessment[]
+  labResults    LabResult[]
+  fhirSyncTasks FhirSyncTask[]
+
+  @@index([lastName, firstName], map: "patients_name_idx")
+  @@index([archivedAt], map: "patients_archived_at_idx")
+  @@index([origin, fhirSyncStatus], map: "patients_fhir_state_idx")
+  @@map("patients")
+}
+
+model Questionnaire {
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @db.VarChar(50)
+  version        String   @db.VarChar(30)
+  title          String   @db.VarChar(200)
+  instructions   String?  @db.Text
+  definition     Json     @db.JsonB
+  definitionHash String   @unique(map: "questionnaires_definition_hash_key") @map("definition_hash") @db.Char(64)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  assessments Assessment[]
+
+  @@unique([code, version], map: "questionnaires_code_version_key")
+  @@index([code, isActive], map: "questionnaires_code_active_idx")
+  @@map("questionnaires")
+}
+
+model Assessment {
+  id                     String           @id @default(uuid()) @db.Uuid
+  patientId              String           @map("patient_id") @db.Uuid
+  questionnaireId        String           @map("questionnaire_id") @db.Uuid
+  createdById            String           @map("created_by_id") @db.Uuid
+  status                 AssessmentStatus @default(SCHEDULED)
+  recipientEmail         String           @map("recipient_email") @db.VarChar(320)
+  scheduledFor           DateTime         @default(now()) @map("scheduled_for") @db.Timestamptz(3)
+  tokenHash              String?          @unique(map: "assessments_token_hash_key") @map("token_hash") @db.Char(64)
+  sentAt                 DateTime?        @map("sent_at") @db.Timestamptz(3)
+  expiresAt              DateTime?        @map("expires_at") @db.Timestamptz(3)
+  completedAt            DateTime?        @map("completed_at") @db.Timestamptz(3)
+  tokenConsumedAt        DateTime?        @map("token_consumed_at") @db.Timestamptz(3)
+  cancelledAt            DateTime?        @map("cancelled_at") @db.Timestamptz(3)
+  sendAttempts           Int              @default(0) @map("send_attempts")
+  lastSendError          String?          @map("last_send_error") @db.Text
+  emailProviderMessageId String?          @map("email_provider_message_id") @db.VarChar(255)
+  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  patient          Patient                     @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  questionnaire    Questionnaire               @relation(fields: [questionnaireId], references: [id], onDelete: Restrict)
+  createdBy        Clinician                   @relation("AssessmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  response         AssessmentResponse?
+  deliveryAttempts AssessmentDeliveryAttempt[]
+
+  @@index([patientId, createdAt], map: "assessments_patient_created_at_idx")
+  @@index([status, scheduledFor], map: "assessments_status_scheduled_for_idx")
+  @@index([status, expiresAt], map: "assessments_status_expires_at_idx")
+  @@map("assessments")
+}
+
+model AssessmentResponse {
+  id              String   @id @default(uuid()) @db.Uuid
+  assessmentId    String   @unique(map: "assessment_responses_assessment_id_key") @map("assessment_id") @db.Uuid
+  answers         Json     @db.JsonB
+  totalScore      Int      @map("total_score") @db.SmallInt
+  riskBand        RiskBand @map("risk_band")
+  scoringSnapshot Json     @map("scoring_snapshot") @db.JsonB
+  submittedAt     DateTime @default(now()) @map("submitted_at") @db.Timestamptz(3)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@index([riskBand, submittedAt], map: "assessment_responses_risk_submitted_idx")
+  @@map("assessment_responses")
+}
+
+model AssessmentDeliveryAttempt {
+  id                String         @id @default(uuid()) @db.Uuid
+  assessmentId      String         @map("assessment_id") @db.Uuid
+  attemptNumber     Int            @map("attempt_number")
+  status            DeliveryStatus
+  provider          String         @db.VarChar(50)
+  providerMessageId String?        @map("provider_message_id") @db.VarChar(255)
+  errorCode         String?        @map("error_code") @db.VarChar(100)
+  errorMessage      String?        @map("error_message") @db.Text
+  attemptedAt       DateTime       @default(now()) @map("attempted_at") @db.Timestamptz(3)
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, attemptNumber], map: "assessment_delivery_attempts_number_key")
+  @@index([status, attemptedAt], map: "assessment_delivery_attempts_status_idx")
+  @@map("assessment_delivery_attempts")
+}
+
+model LabTest {
+  code           String   @id @db.VarChar(20)
+  name           String   @db.VarChar(120)
+  loincCode      String   @unique(map: "lab_tests_loinc_code_key") @map("loinc_code") @db.VarChar(20)
+  defaultUnit    String   @map("default_unit") @db.VarChar(30)
+  defaultRefLow  Decimal? @map("default_ref_low") @db.Decimal(12, 4)
+  defaultRefHigh Decimal? @map("default_ref_high") @db.Decimal(12, 4)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  results LabResult[]
+
+  @@map("lab_tests")
+}
+
+model LabImport {
+  id               String          @id @default(uuid()) @db.Uuid
+  uploadedById     String          @map("uploaded_by_id") @db.Uuid
+  originalFileName String          @map("original_file_name") @db.VarChar(255)
+  fileSha256       String          @map("file_sha256") @db.Char(64)
+  status           LabImportStatus @default(PROCESSING)
+  totalRows        Int             @default(0) @map("total_rows")
+  acceptedRows     Int             @default(0) @map("accepted_rows")
+  rejectedRows     Int             @default(0) @map("rejected_rows")
+  duplicateRows    Int             @default(0) @map("duplicate_rows")
+  startedAt        DateTime        @default(now()) @map("started_at") @db.Timestamptz(3)
+  completedAt      DateTime?       @map("completed_at") @db.Timestamptz(3)
+  failureReason    String?         @map("failure_reason") @db.Text
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  uploadedBy Clinician      @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+  rows       LabImportRow[]
+
+  @@index([uploadedById, createdAt], map: "lab_imports_uploader_created_at_idx")
+  @@index([status, createdAt], map: "lab_imports_status_created_at_idx")
+  @@map("lab_imports")
+}
+
+model LabImportRow {
+  id               String             @id @default(uuid()) @db.Uuid
+  importId         String             @map("import_id") @db.Uuid
+  rowNumber        Int                @map("row_number")
+  status           LabImportRowStatus
+  rawData          Json               @map("raw_data") @db.JsonB
+  normalizedData   Json?              @map("normalized_data") @db.JsonB
+  validationErrors Json               @map("validation_errors") @db.JsonB
+  labResultId      String?            @unique(map: "lab_import_rows_lab_result_id_key") @map("lab_result_id") @db.Uuid
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  import    LabImport  @relation(fields: [importId], references: [id], onDelete: Cascade)
+  labResult LabResult? @relation(fields: [labResultId], references: [id], onDelete: SetNull)
+
+  @@unique([importId, rowNumber], map: "lab_import_rows_import_row_number_key")
+  @@index([importId, status], map: "lab_import_rows_import_status_idx")
+  @@map("lab_import_rows")
+}
+
+model LabResult {
+  id                String          @id @default(uuid()) @db.Uuid
+  patientId         String          @map("patient_id") @db.Uuid
+  testCode          String          @map("test_code") @db.VarChar(20)
+  collectedDate     DateTime        @map("collected_date") @db.Date
+  value             Decimal         @db.Decimal(12, 4)
+  unit              String          @db.VarChar(30)
+  refLow            Decimal?        @map("ref_low") @db.Decimal(12, 4)
+  refHigh           Decimal?        @map("ref_high") @db.Decimal(12, 4)
+  source            LabResultSource
+  fhirResourceId    String?         @unique(map: "lab_results_fhir_resource_id_key") @map("fhir_resource_id") @db.VarChar(100)
+  fhirVersionId     String?         @map("fhir_version_id") @db.VarChar(100)
+  fhirOwnership     FhirOwnership   @default(NONE) @map("fhir_ownership")
+  fhirSyncStatus    FhirSyncStatus  @default(NOT_SYNCED) @map("fhir_sync_status")
+  fhirLastSyncedAt  DateTime?       @map("fhir_last_synced_at") @db.Timestamptz(3)
+  fhirLastSyncError String?         @map("fhir_last_sync_error") @db.Text
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  patient       Patient        @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  test          LabTest        @relation(fields: [testCode], references: [code], onDelete: Restrict)
+  importRow     LabImportRow?
+  fhirSyncTasks FhirSyncTask[]
+
+  @@unique([patientId, collectedDate, testCode], map: "lab_results_patient_date_test_key")
+  @@index([patientId, testCode, collectedDate], map: "lab_results_patient_test_date_idx")
+  @@index([source, createdAt], map: "lab_results_source_created_at_idx")
+  @@index([fhirSyncStatus, updatedAt], map: "lab_results_fhir_status_idx")
+  @@map("lab_results")
+}
+
+model FhirSyncRun {
+  id              String            @id @default(uuid()) @db.Uuid
+  direction       FhirSyncDirection
+  trigger         FhirSyncTrigger
+  scope           FhirSyncScope
+  status          FhirSyncRunStatus @default(RUNNING)
+  initiatedById   String?           @map("initiated_by_id") @db.Uuid
+  discoveredCount Int               @default(0) @map("discovered_count")
+  succeededCount  Int               @default(0) @map("succeeded_count")
+  failedCount     Int               @default(0) @map("failed_count")
+  skippedCount    Int               @default(0) @map("skipped_count")
+  checkpoint      Json?             @db.JsonB
+  lastError       String?           @map("last_error") @db.Text
+  startedAt       DateTime          @default(now()) @map("started_at") @db.Timestamptz(3)
+  completedAt     DateTime?         @map("completed_at") @db.Timestamptz(3)
+
+  initiatedBy Clinician?     @relation(fields: [initiatedById], references: [id], onDelete: SetNull)
+  tasks       FhirSyncTask[]
+
+  @@index([direction, status, startedAt], map: "fhir_sync_runs_direction_status_idx")
+  @@map("fhir_sync_runs")
+}
+
+model FhirSyncTask {
+  id               String             @id @default(uuid()) @db.Uuid
+  runId            String?            @map("run_id") @db.Uuid
+  direction        FhirSyncDirection
+  trigger          FhirSyncTrigger
+  resourceType     FhirResourceType   @map("resource_type")
+  operation        FhirOperation
+  status           FhirSyncTaskStatus @default(PENDING)
+  patientId        String?            @map("patient_id") @db.Uuid
+  labResultId      String?            @map("lab_result_id") @db.Uuid
+  fhirResourceId   String?            @map("fhir_resource_id") @db.VarChar(100)
+  deduplicationKey String             @unique(map: "fhir_sync_tasks_deduplication_key") @map("deduplication_key") @db.VarChar(255)
+  attempts         Int                @default(0)
+  nextAttemptAt    DateTime?          @map("next_attempt_at") @db.Timestamptz(3)
+  lockedAt         DateTime?          @map("locked_at") @db.Timestamptz(3)
+  lastErrorCode    String?            @map("last_error_code") @db.VarChar(100)
+  lastErrorMessage String?            @map("last_error_message") @db.Text
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  completedAt      DateTime?          @map("completed_at") @db.Timestamptz(3)
+
+  run       FhirSyncRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+  patient   Patient?     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  labResult LabResult?   @relation(fields: [labResultId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt], map: "fhir_sync_tasks_retry_idx")
+  @@index([resourceType, fhirResourceId], map: "fhir_sync_tasks_resource_idx")
+  @@index([patientId, createdAt], map: "fhir_sync_tasks_patient_idx")
+  @@index([labResultId, createdAt], map: "fhir_sync_tasks_lab_result_idx")
+  @@map("fhir_sync_tasks")
+}
+
+model AuditLog {
+  id          BigInt         @id @default(autoincrement())
+  actorType   AuditActorType @map("actor_type")
+  clinicianId String?        @map("clinician_id") @db.Uuid
+  action      String         @db.VarChar(100)
+  entityType  String         @map("entity_type") @db.VarChar(100)
+  entityId    String         @map("entity_id") @db.VarChar(100)
+  requestId   String?        @map("request_id") @db.VarChar(100)
+  metadata    Json?          @db.JsonB
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  clinician Clinician? @relation(fields: [clinicianId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt], map: "audit_logs_entity_idx")
+  @@index([clinicianId, createdAt], map: "audit_logs_clinician_idx")
+  @@map("audit_logs")
+}

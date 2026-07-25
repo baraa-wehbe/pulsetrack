@@ -5,6 +5,9 @@
 /.next
 /out
 
+# Generated Prisma Client
+/src/generated/prisma
+
 # Test and coverage output
 /coverage
 
