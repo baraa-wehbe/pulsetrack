@@ -5,8 +5,10 @@ patients.
 
 ## Current status
 
-This repository currently contains the application foundation only. No business
-features are implemented.
+This repository contains the application and database foundation, immutable
+reference-data seeding, and clinician-only credentials authentication. Patient
+management, questionnaire delivery, lab importing, dashboards, FHIR, and AI
+features are not implemented.
 
 ## Requirements
 
@@ -98,6 +100,35 @@ npm run db:seed
 The seed is idempotent. It rejects conflicting questionnaire version `1.0` or
 lab mappings instead of overwriting established reference data.
 
+## Clinician authentication
+
+PulseTrack authenticates clinicians with normalized lowercase email addresses
+and Argon2id password hashes. Successful login creates an opaque server-side
+session. Only a random session token is sent to the browser in an `HttpOnly`,
+`SameSite=Lax` cookie; production cookies also use `Secure`. Sessions expire
+after eight hours, are revoked during logout, and are rejected immediately when
+the clinician is disabled.
+
+The public authentication routes are `/login`, `/api/auth/login`, and the
+idempotent `/api/auth/logout`. The root application page is protected by its
+server layout, and private APIs live under `/api/private` and use the centralized
+clinician authentication wrapper. There are no patient accounts or patient
+authentication flows.
+
+### Create a development clinician
+
+Create the first local clinician with the administrative CLI:
+
+```powershell
+npm run clinician:create -- --email clinician@example.local --password "YOUR_SECURE_DEVELOPMENT_PASSWORD" --name "Development Clinician"
+```
+
+The command validates and normalizes the email, hashes the password with the
+same Argon2id configuration used by login, and creates an `ACTIVE` clinician.
+It does not print the password or stored password hash. This remains a local
+administrative command; PulseTrack does not expose a registration page or
+account-creation API.
+
 ## Commands
 
 ```bash
@@ -111,6 +142,9 @@ npm run format:check # Check formatting
 npm run db:up        # Start local PostgreSQL
 npm run db:status    # Show database container status
 npm run db:down      # Stop local PostgreSQL
+npm run clinician:create -- --email <email> --password "<password>" --name "<name>"
+npm test             # Run the unit test suite
+npm run test:auth    # Run clinician authentication unit tests
 ```
 
 ## Source structure
@@ -119,7 +153,7 @@ npm run db:down      # Stop local PostgreSQL
 - `src/components`: shared UI components
 - `src/config`: centralized application configuration and environment validation
 - `src/lib`: shared framework-independent utilities
-- `src/server`: future server-only code within the Next.js application
+- `src/server`: server-only authentication and future backend domain code
 - `src/modules`: domain-oriented architectural placeholders
 - `prisma`: database schema, migrations, and reviewed hardening SQL
 

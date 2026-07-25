@@ -19,15 +19,21 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:migrate:status": "prisma migrate status",
+    "clinician:create": "tsx --tsconfig jsconfig.json scripts/create-clinician.js",
     "db:seed": "prisma db seed",
-    "test": "tsx --test prisma/seed.test.js",
+    "test": "tsx --tsconfig jsconfig.json --test prisma/seed.test.js src/server/auth/auth.test.js src/server/auth/create-clinician.test.js",
     "test:seed": "tsx --test prisma/seed.test.js",
-    "test:seed:integration": "tsx --test prisma/seed.integration.test.js"
+    "test:seed:integration": "tsx --test prisma/seed.integration.test.js",
+    "test:auth": "tsx --tsconfig jsconfig.json --test src/server/auth/auth.test.js",
+    "test:auth:integration": "tsx --tsconfig jsconfig.json --test src/server/auth/auth.integration.test.js",
+    "test:auth:e2e": "tsx --tsconfig jsconfig.json scripts/verify-auth-flow.js",
+    "test:clinician-create": "tsx --tsconfig jsconfig.json --test src/server/auth/create-clinician.test.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
     "@tailwindcss/postcss": "^4.3.3",
+    "argon2": "^0.45.1",
     "dotenv": "^17.4.2",
     "next": "^16.2.11",
     "pg": "^8.22.0",
