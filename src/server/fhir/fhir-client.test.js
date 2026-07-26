@@ -48,6 +48,44 @@ test("GET, POST, and PUT send server API-key and FHIR JSON headers", async () =>
   assert.equal(requests[1].init.body, JSON.stringify(patient));
 });
 
+test("conditional create sends only a validated If-None-Exist header", async () => {
+  const requests = [];
+  const client = createFhirClient({
+    apiKey: "server-secret",
+    baseUrl: "https://fhir.example.test/r4/",
+    fetchImpl: async (_url, options) => {
+      requests.push(options);
+      return jsonResponse({ resourceType: "Patient", id: "patient-1" }, 201);
+    },
+  });
+
+  await client.post(
+    "Patient",
+    { resourceType: "Patient" },
+    {
+      ifNoneExist: "identifier=https%3A%2F%2Fcandidate.example%2Fmrn%7CPT-100",
+    },
+  );
+
+  assert.equal(
+    requests[0].headers["If-None-Exist"],
+    "identifier=https%3A%2F%2Fcandidate.example%2Fmrn%7CPT-100",
+  );
+  assert.throws(
+    () =>
+      client.post(
+        "Patient",
+        { resourceType: "Patient" },
+        {
+          ifNoneExist: "identifier=safe\r\nx-api-key: leaked",
+        },
+      ),
+    (error) =>
+      error instanceof FhirClientError &&
+      error.code === "INVALID_CONDITIONAL_CREATE",
+  );
+});
+
 test("timeout aborts safely without exposing request data", async () => {
   const client = createFhirClient(
     options(

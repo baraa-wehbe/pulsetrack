@@ -9,5 +9,10 @@ OperationOutcome errors. Mappers require deployment-specific identifier-system
 URLs instead of inventing namespaces. Patient MRNs are normalized identifiers;
 lab observations use authoritative LOINC catalog coding and UCUM quantities.
 
-No synchronization worker, event handler, import, push, or user interface is
-implemented yet.
+Patient push work is persisted in the existing `fhir_sync_tasks` table and can
+be processed with `npm run fhir:sync-patients`. The worker requires
+`FHIR_BASE_URL`, `FHIR_API_KEY`, and `FHIR_MRN_IDENTIFIER_SYSTEM`; these values
+remain server-only.
+
+Observation push, pull synchronization, and synchronization UI remain
+deferred.

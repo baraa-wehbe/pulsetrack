@@ -154,7 +154,7 @@ export const createFhirClient = ({
     return candidate;
   };
 
-  const request = async (method, path, body) => {
+  const request = async (method, path, body, requestHeaders = {}) => {
     const url = resolveUrl(path);
 
     for (let attempt = 0; attempt <= max429Retries; attempt += 1) {
@@ -169,6 +169,7 @@ export const createFhirClient = ({
             Accept: FHIR_JSON,
             "Content-Type": FHIR_JSON,
             "x-api-key": apiKey,
+            ...requestHeaders,
           },
           body: body === undefined ? undefined : JSON.stringify(body),
           signal: controller.signal,
@@ -227,7 +228,22 @@ export const createFhirClient = ({
   };
 
   const get = (path) => request("GET", path);
-  const post = (path, resource) => request("POST", path, resource);
+  const post = (path, resource, { ifNoneExist } = {}) => {
+    if (
+      ifNoneExist !== undefined &&
+      (typeof ifNoneExist !== "string" ||
+        ifNoneExist.length === 0 ||
+        /[\r\n]/.test(ifNoneExist))
+    ) {
+      throw new FhirClientError("INVALID_CONDITIONAL_CREATE");
+    }
+    return request(
+      "POST",
+      path,
+      resource,
+      ifNoneExist ? { "If-None-Exist": ifNoneExist } : {},
+    );
+  };
   const put = (path, resource) => request("PUT", path, resource);
 
   const getBundle = async (path, { maxPages = DEFAULT_MAX_PAGES } = {}) => {

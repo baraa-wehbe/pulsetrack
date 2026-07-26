@@ -12,6 +12,7 @@ import {
   PATIENT_LIST_ALL,
   PATIENT_LIST_DEFAULTS,
 } from "@/lib/patient-validation";
+import { enqueuePatientSync } from "@/server/fhir/patient-sync-queue";
 
 export const PATIENT_AUDIT_ACTIONS = Object.freeze({
   create: "PATIENT_CREATED",
@@ -200,7 +201,7 @@ export const createPatient = async (
   prismaClient,
   actorId,
   input,
-  { auditWriter = defaultAuditWriter } = {},
+  { auditWriter = defaultAuditWriter, syncEnqueuer = enqueuePatientSync } = {},
 ) => {
   try {
     const patient = await prismaClient.$transaction(async (transaction) => {
@@ -214,6 +215,8 @@ export const createPatient = async (
           email: input.email,
           phone: input.phone,
           createdById: actorId,
+          fhirSyncStatus: "PENDING",
+          fhirLastSyncError: null,
         },
         select: PATIENT_SAFE_SELECT,
       });
@@ -231,6 +234,8 @@ export const createPatient = async (
           },
         }),
       );
+
+      await syncEnqueuer(transaction, createdPatient.id, "CREATE");
 
       return createdPatient;
     });
@@ -256,7 +261,7 @@ export const updatePatient = async (
   actorId,
   patientId,
   input,
-  { auditWriter = defaultAuditWriter } = {},
+  { auditWriter = defaultAuditWriter, syncEnqueuer = enqueuePatientSync } = {},
 ) => {
   try {
     const result = await prismaClient.$transaction(async (transaction) => {
@@ -301,6 +306,8 @@ export const updatePatient = async (
           field === "dateOfBirth" ? toDatabaseDate(input[field]) : input[field],
         ]),
       );
+      data.fhirSyncStatus = "PENDING";
+      data.fhirLastSyncError = null;
       const updatedPatient = await transaction.patient.update({
         where: { id: existingPatient.id },
         data,
@@ -316,6 +323,8 @@ export const updatePatient = async (
           metadata: { changedFields, changes },
         }),
       );
+
+      await syncEnqueuer(transaction, updatedPatient.id, "UPDATE");
 
       return { patient: updatedPatient, changed: true };
     });

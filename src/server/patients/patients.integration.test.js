@@ -70,6 +70,13 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
     assert.equal(stored.mrn, created.mrn);
     assert.equal(stored.email, created.email);
     assert.equal(stored.createdById, clinician.id);
+    assert.equal(stored.fhirSyncStatus, "PENDING");
+    let syncTasks = await prisma.fhirSyncTask.findMany({
+      where: { patientId: created.id },
+    });
+    assert.equal(syncTasks.length, 1);
+    assert.equal(syncTasks[0].operation, "CREATE");
+    assert.equal(syncTasks[0].status, "PENDING");
 
     let auditEntries = await prisma.auditLog.findMany({
       where: { entityType: "PATIENT", entityId: created.id },
@@ -187,6 +194,12 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
     assert.equal(updated.patient.mrn, created.mrn);
     assert.equal(updated.patient.email, "updated@example.test");
     assert.equal(updated.patient.phone, null);
+    syncTasks = await prisma.fhirSyncTask.findMany({
+      where: { patientId: created.id },
+    });
+    assert.equal(syncTasks.length, 1);
+    assert.equal(syncTasks[0].operation, "UPDATE");
+    assert.equal(syncTasks[0].status, "PENDING");
 
     auditEntries = await prisma.auditLog.findMany({
       where: { entityType: "PATIENT", entityId: created.id },

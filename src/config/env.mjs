@@ -24,6 +24,7 @@ const environmentSchema = z.object({
   NEXT_PUBLIC_APP_URL: z.url(),
   FHIR_BASE_URL: optionalEnvironmentValue(z.url()),
   FHIR_API_KEY: optionalEnvironmentValue(z.string().min(1)),
+  FHIR_MRN_IDENTIFIER_SYSTEM: optionalEnvironmentValue(z.url()),
   FHIR_REQUEST_TIMEOUT_MS: z.coerce
     .number()
     .int()
@@ -41,6 +42,7 @@ const result = environmentSchema.safeParse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   FHIR_BASE_URL: process.env.FHIR_BASE_URL,
   FHIR_API_KEY: process.env.FHIR_API_KEY,
+  FHIR_MRN_IDENTIFIER_SYSTEM: process.env.FHIR_MRN_IDENTIFIER_SYSTEM,
   FHIR_REQUEST_TIMEOUT_MS: process.env.FHIR_REQUEST_TIMEOUT_MS,
 });
 
