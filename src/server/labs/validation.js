@@ -60,5 +60,6 @@ export const validateLabCsvFile = async (file, maximumBytes) => {
   return {
     originalFileName,
     fileSha256: createHash("sha256").update(bytes).digest("hex"),
+    bytes,
   };
 };

@@ -5,6 +5,7 @@ import {
   LabUploadValidationError,
   validateLabCsvFile,
 } from "@/server/labs/validation";
+import { processLabImport } from "@/server/labs/processing";
 import { createLabImport, listLabImports } from "@/server/labs/service";
 
 const labJson = (body, init = {}) =>
@@ -49,7 +50,12 @@ export const POST = withClinicianAuthentication(
         env.LAB_CSV_MAX_BYTES,
       );
       const labImport = await createLabImport(prisma, clinician.id, metadata);
-      return labJson({ labImport }, { status: 201 });
+      const processed = await processLabImport(
+        prisma,
+        labImport.id,
+        metadata.bytes,
+      );
+      return labJson({ labImport: processed }, { status: 201 });
     } catch (error) {
       if (error instanceof LabUploadValidationError) {
         return validationResponse(error.code);

@@ -227,10 +227,15 @@ constraint remains the database backstop against duplicate responses.
 Authenticated clinicians can download the exact `lab-results-template.csv`
 project template and upload CSV files from `/lab-uploads`. The protected upload
 endpoint accepts non-empty `.csv` files up to `LAB_CSV_MAX_BYTES` (5 MiB by
-default), requires the template header row in its exact order, and creates a
-clinician-scoped `PROCESSING` lab-import record containing only safe filename
-metadata and a SHA-256 digest. Raw CSV files are not retained. Full row
-validation and lab-result creation are intentionally deferred.
+default) and requires the template header row in its exact order. Each upload
+creates a clinician-scoped `PROCESSING` record, then a shared server service
+trims and normalizes every row, validates active MRNs and supported catalog
+codes, and records accepted, rejected, or duplicate outcomes. Valid rows are
+inserted even when other rows fail. The database identity of patient, collection
+date, and test code prevents duplicate results across retries and corrected
+re-uploads. Raw CSV files are not retained; only safe filename metadata, a
+SHA-256 digest, normalized row results, and stable validation codes are stored.
+Downstream analytics remain intentionally deferred.
 
 ## Commands
 

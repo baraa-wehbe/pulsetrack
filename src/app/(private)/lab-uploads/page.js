@@ -121,6 +121,15 @@ export default async function LabUploadsPage() {
                       {messages.rowCount}
                     </th>
                     <th className="px-4 py-3 text-start" scope="col">
+                      {messages.acceptedRows}
+                    </th>
+                    <th className="px-4 py-3 text-start" scope="col">
+                      {messages.rejectedRows}
+                    </th>
+                    <th className="px-4 py-3 text-start" scope="col">
+                      {messages.duplicateRows}
+                    </th>
+                    <th className="px-4 py-3 text-start" scope="col">
                       {messages.status}
                     </th>
                   </tr>
@@ -142,6 +151,9 @@ export default async function LabUploadsPage() {
                           ? labImport.totalRows
                           : messages.notAvailable}
                       </td>
+                      <td className="px-4 py-3">{labImport.acceptedRows}</td>
+                      <td className="px-4 py-3">{labImport.rejectedRows}</td>
+                      <td className="px-4 py-3">{labImport.duplicateRows}</td>
                       <td className="px-4 py-3">
                         <StatusBadge
                           messages={messages}
@@ -185,6 +197,24 @@ export default async function LabUploadsPage() {
                           ? labImport.totalRows
                           : messages.notAvailable}
                       </dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500 dark:text-slate-400">
+                        {messages.acceptedRows}
+                      </dt>
+                      <dd>{labImport.acceptedRows}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500 dark:text-slate-400">
+                        {messages.rejectedRows}
+                      </dt>
+                      <dd>{labImport.rejectedRows}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-slate-500 dark:text-slate-400">
+                        {messages.duplicateRows}
+                      </dt>
+                      <dd>{labImport.duplicateRows}</dd>
                     </div>
                   </dl>
                 </li>

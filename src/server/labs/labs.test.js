@@ -18,6 +18,12 @@ import {
   LabUploadValidationError,
   validateLabCsvFile,
 } from "@/server/labs/validation";
+import {
+  LAB_ROW_ERROR_CODES,
+  normalizeLabCsvRow,
+  parseLabCsvRows,
+  validateNormalizedLabRow,
+} from "@/server/labs/processing";
 
 const templateContent = [
   "mrn,collected_date,test_code,test_name,value,unit,ref_low,ref_high",
@@ -83,6 +89,79 @@ test("valid CSV metadata is normalized safely and content is hashed", async () =
     createHash("sha256").update(templateContent).digest("hex"),
   );
   assert.equal(JSON.stringify(result).includes(templateContent), false);
+});
+
+test("lab rows trim fields and normalize MRN and test code", () => {
+  const csv = [
+    "mrn,collected_date,test_code,test_name,value,unit,ref_low,ref_high",
+    " pt-100 , 2026-01-02 , hba1c , ignored , 6.4 , ignored , ignored , ignored ",
+    "",
+  ].join("\n");
+  const rows = parseLabCsvRows(Buffer.from(csv));
+  const normalized = normalizeLabCsvRow(rows[0].fields);
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].rowNumber, 2);
+  assert.deepEqual(normalized, {
+    mrn: "PT-100",
+    collectedDate: "2026-01-02",
+    testCode: "HBA1C",
+    value: "6.4",
+  });
+});
+
+test("row validation emits every required stable error code", () => {
+  const patient = { id: "patient-1", mrn: "PT-100" };
+  const testDefinition = {
+    code: "HBA1C",
+    defaultUnit: "%",
+    defaultRefLow: "4",
+    defaultRefHigh: "5.6",
+  };
+  const context = {
+    activePatientsByMrn: new Map([["PT-100", patient]]),
+    activeTestsByCode: new Map([["HBA1C", testDefinition]]),
+    today: "2026-07-26",
+  };
+  const validate = (overrides) => {
+    const fields = {
+      mrn: "PT-100",
+      collected_date: "2026-01-02",
+      test_code: "HBA1C",
+      test_name: "",
+      value: "6.4",
+      unit: "",
+      ref_low: "",
+      ref_high: "",
+      ...overrides,
+    };
+    return validateNormalizedLabRow(
+      fields,
+      normalizeLabCsvRow(fields),
+      context,
+    ).errors.map(({ code }) => code);
+  };
+
+  assert.deepEqual(validate({ value: "" }), [
+    LAB_ROW_ERROR_CODES.MISSING_REQUIRED_FIELD,
+  ]);
+  assert.deepEqual(validate({ mrn: "UNKNOWN" }), [
+    LAB_ROW_ERROR_CODES.UNKNOWN_MRN,
+  ]);
+  assert.deepEqual(validate({ test_code: "UNKNOWN" }), [
+    LAB_ROW_ERROR_CODES.UNKNOWN_TEST_CODE,
+  ]);
+  assert.deepEqual(validate({ collected_date: "2026-02-30" }), [
+    LAB_ROW_ERROR_CODES.INVALID_COLLECTED_DATE,
+  ]);
+  assert.deepEqual(validate({ collected_date: "2026-07-27" }), [
+    LAB_ROW_ERROR_CODES.FUTURE_COLLECTED_DATE,
+  ]);
+  for (const value of ["NaN", "Infinity", "1e3", "12.12345"]) {
+    assert.deepEqual(validate({ value }), [
+      LAB_ROW_ERROR_CODES.INVALID_NUMERIC_VALUE,
+    ]);
+  }
 });
 
 test("missing, non-CSV, empty, and oversized uploads are rejected", async () => {
@@ -192,5 +271,12 @@ test("lab upload UI and API remain protected, accessible, and server parsed", as
   assert.match(route, /server\/labs\/http/);
   assert.match(templateRoute, /withClinicianAuthentication/);
   assert.match(validation, /createHash\("sha256"\)/);
+  assert.match(
+    await readFile("src/server/labs/http.js", "utf8"),
+    /processLabImport/,
+  );
+  assert.match(page, /acceptedRows/);
+  assert.match(page, /rejectedRows/);
+  assert.match(page, /duplicateRows/);
   assert.doesNotMatch(form, /createHash|fileSha256|prisma/);
 });
