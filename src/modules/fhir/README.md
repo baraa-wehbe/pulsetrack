@@ -15,5 +15,8 @@ be processed with `npm run fhir:sync-patients`. The worker requires
 `FHIR_LAB_RESULT_IDENTIFIER_SYSTEM`; these values remain server-only.
 
 Accepted CSV lab results are coalesced into Observation push tasks and wait for
-a confirmed candidate-owned Patient reference. Pull synchronization and
-synchronization UI remain deferred.
+a confirmed candidate-owned Patient reference.
+
+`npm run fhir:pull-seeds` performs the bounded manual pull for seed MRNs
+`MRN-2001` through `MRN-2005` and their supported historical Observations.
+Continuous polling and synchronization UI remain deferred.

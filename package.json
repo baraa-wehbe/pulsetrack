@@ -22,6 +22,7 @@
     "clinician:create": "tsx --tsconfig jsconfig.json scripts/create-clinician.js",
     "assessments:deliver-due": "tsx --tsconfig jsconfig.json scripts/deliver-due-assessments.js",
     "fhir:sync-patients": "node --conditions=react-server --import tsx scripts/sync-fhir-patients.js",
+    "fhir:pull-seeds": "node --conditions=react-server --import tsx scripts/pull-fhir-seeds.js",
     "db:seed": "prisma db seed",
     "test": "tsx --tsconfig jsconfig.json --test prisma/seed.test.js src/server/auth/auth.test.js src/server/auth/create-clinician.test.js src/server/preferences/preferences.test.js src/components/application-shell.test.js src/lib/patient-validation.test.js src/lib/assessment-validation.test.js src/lib/questionnaire.test.js src/server/assessments/assessment-service.test.js src/server/assessments/public-assessment.test.js src/server/patients/patient-list.test.js src/server/patients/patient-detail.test.js src/components/patient-management.test.js",
     "test:seed": "tsx --test prisma/seed.test.js",
@@ -51,6 +52,7 @@
     "test:tier1:security": "tsx --tsconfig jsconfig.json --test src/server/security/tier1-security.test.js",
     "test:fhir": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-client.test.js src/server/fhir/fhir-mapping.test.js src/server/fhir/patient-sync.test.js src/server/fhir/observation-sync.test.js",
     "test:fhir:observations": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-mapping.test.js src/server/fhir/observation-sync.test.js",
+    "test:fhir:pull": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/seed-pull.test.js src/server/fhir/seed-pull.integration.test.js",
     "test:public-assessment": "tsx --tsconfig jsconfig.json --test src/lib/questionnaire.test.js src/server/assessments/public-assessment.test.js",
     "test:public-assessment:integration": "tsx --tsconfig jsconfig.json --test src/server/assessments/public-assessment.integration.test.js",
     "test:public-assessment:browser": "tsx --tsconfig jsconfig.json scripts/verify-public-assessment.js"
