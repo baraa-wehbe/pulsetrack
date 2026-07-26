@@ -161,7 +161,7 @@ const pushObservation = async ({
 export const processObservationSyncTask = async (
   prismaClient,
   taskId,
-  { client, resultIdentifierSystem, now = () => new Date() },
+  { client, resultIdentifierSystem, maxAttempts = 5, now = () => new Date() },
 ) => {
   const claimedAt = now();
   const staleBefore = new Date(claimedAt.getTime() - 10 * 60 * 1000);
@@ -169,6 +169,7 @@ export const processObservationSyncTask = async (
     where: {
       id: taskId,
       resourceType: "OBSERVATION",
+      attempts: { lt: maxAttempts },
       OR: [
         { status: { in: ["PENDING", "FAILED"] } },
         { status: "PROCESSING", lockedAt: { lt: staleBefore } },
@@ -308,12 +309,13 @@ const failTask = async (prismaClient, task, claimedAt, now, code) => {
 export const processPendingObservationSyncTasks = async (
   prismaClient,
   options,
-  { limit = 25, now = () => new Date() } = {},
+  { limit = 25, maxAttempts = 5, now = () => new Date() } = {},
 ) => {
   const current = now();
   const tasks = await prismaClient.fhirSyncTask.findMany({
     where: {
       resourceType: "OBSERVATION",
+      attempts: { lt: maxAttempts },
       OR: [
         {
           AND: [
@@ -341,6 +343,7 @@ export const processPendingObservationSyncTasks = async (
     results.push(
       await processObservationSyncTask(prismaClient, task.id, {
         ...options,
+        maxAttempts,
         now,
       }),
     );

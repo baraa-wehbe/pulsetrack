@@ -132,7 +132,7 @@ const retryDelay = (attempts) =>
 export const processPatientSyncTask = async (
   prismaClient,
   taskId,
-  { client, mrnIdentifierSystem, now = () => new Date() },
+  { client, mrnIdentifierSystem, maxAttempts = 5, now = () => new Date() },
 ) => {
   const claimedAt = now();
   const staleBefore = new Date(claimedAt.getTime() - 10 * 60 * 1000);
@@ -140,6 +140,7 @@ export const processPatientSyncTask = async (
     where: {
       id: taskId,
       resourceType: "PATIENT",
+      attempts: { lt: maxAttempts },
       OR: [
         { status: { in: ["PENDING", "FAILED"] } },
         { status: "PROCESSING", lockedAt: { lt: staleBefore } },
@@ -245,12 +246,13 @@ export const processPatientSyncTask = async (
 export const processPendingPatientSyncTasks = async (
   prismaClient,
   options,
-  { limit = 25, now = () => new Date() } = {},
+  { limit = 25, maxAttempts = 5, now = () => new Date() } = {},
 ) => {
   const current = now();
   const tasks = await prismaClient.fhirSyncTask.findMany({
     where: {
       resourceType: "PATIENT",
+      attempts: { lt: maxAttempts },
       OR: [
         {
           AND: [
@@ -279,6 +281,7 @@ export const processPendingPatientSyncTasks = async (
     results.push(
       await processPatientSyncTask(prismaClient, task.id, {
         ...options,
+        maxAttempts,
         now,
       }),
     );

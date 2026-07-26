@@ -41,6 +41,11 @@ export const PATIENT_BADGE_MAPPINGS = Object.freeze({
     }),
   }),
   syncStatus: Object.freeze({
+    NOT_CONFIGURED: Object.freeze({
+      translationKey: "syncNotConfigured",
+      descriptionKey: "fhirNotConfiguredDescription",
+      variant: "neutral",
+    }),
     NOT_SYNCED: Object.freeze({
       translationKey: "syncNotSynced",
       descriptionKey: "syncNotSyncedDescription",

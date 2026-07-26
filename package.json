@@ -53,6 +53,7 @@
     "test:fhir": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-client.test.js src/server/fhir/fhir-mapping.test.js src/server/fhir/patient-sync.test.js src/server/fhir/observation-sync.test.js",
     "test:fhir:observations": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-mapping.test.js src/server/fhir/observation-sync.test.js",
     "test:fhir:pull": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/seed-pull.test.js src/server/fhir/seed-pull.integration.test.js",
+    "test:fhir:status": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-status.test.js",
     "test:public-assessment": "tsx --tsconfig jsconfig.json --test src/lib/questionnaire.test.js src/server/assessments/public-assessment.test.js",
     "test:public-assessment:integration": "tsx --tsconfig jsconfig.json --test src/server/assessments/public-assessment.integration.test.js",
     "test:public-assessment:browser": "tsx --tsconfig jsconfig.json scripts/verify-public-assessment.js"

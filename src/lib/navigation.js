@@ -1,6 +1,7 @@
 export const PRIMARY_NAVIGATION = Object.freeze([
   { href: "/patients", labelKey: "patients" },
   { href: "/lab-uploads", labelKey: "labUploads" },
+  { href: "/fhir-sync", labelKey: "fhirSync" },
 ]);
 
 export const DASHBOARD_NAVIGATION = Object.freeze([

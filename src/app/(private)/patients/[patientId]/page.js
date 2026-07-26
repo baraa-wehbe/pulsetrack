@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 
 import ArchivePatientButton from "@/components/archive-patient-button";
 import AssessmentBadge from "@/components/assessment-badge";
+import FhirPatientActions from "@/components/fhir-patient-actions";
 import PatientBadge from "@/components/patient-badge";
+import { env } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import {
   getAssessmentTimelineEntries,
@@ -136,9 +138,27 @@ export default async function PatientDetailsPage({ params, searchParams }) {
           <PatientBadge
             kind="syncStatus"
             messages={messages}
-            value={patient.fhirSyncStatus}
+            value={
+              env.FHIR_BASE_URL &&
+              env.FHIR_API_KEY &&
+              env.FHIR_MRN_IDENTIFIER_SYSTEM &&
+              env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM
+                ? patient.fhirSyncStatus
+                : "NOT_CONFIGURED"
+            }
           />
         </div>
+        <FhirPatientActions
+          configured={Boolean(
+            env.FHIR_BASE_URL &&
+            env.FHIR_API_KEY &&
+            env.FHIR_MRN_IDENTIFIER_SYSTEM &&
+            env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM,
+          )}
+          externallyOwned={patient.fhirOwnership === "EXTERNAL_READ_ONLY"}
+          messages={messages}
+          patientId={patient.id}
+        />
       </div>
 
       {assessmentNotice && (

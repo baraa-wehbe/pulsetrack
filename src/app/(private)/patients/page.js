@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import PatientBadge from "@/components/patient-badge";
+import { env } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import {
   buildPatientDetailHref,
@@ -336,7 +337,14 @@ export default async function PatientsPage({ searchParams }) {
                   <PatientBadge
                     kind="syncStatus"
                     messages={messages}
-                    value={patient.fhirSyncStatus}
+                    value={
+                      env.FHIR_BASE_URL &&
+                      env.FHIR_API_KEY &&
+                      env.FHIR_MRN_IDENTIFIER_SYSTEM &&
+                      env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM
+                        ? patient.fhirSyncStatus
+                        : "NOT_CONFIGURED"
+                    }
                   />
                 </div>
               </article>
@@ -414,7 +422,14 @@ export default async function PatientsPage({ searchParams }) {
                       <PatientBadge
                         kind="syncStatus"
                         messages={messages}
-                        value={patient.fhirSyncStatus}
+                        value={
+                          env.FHIR_BASE_URL &&
+                          env.FHIR_API_KEY &&
+                          env.FHIR_MRN_IDENTIFIER_SYSTEM &&
+                          env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM
+                            ? patient.fhirSyncStatus
+                            : "NOT_CONFIGURED"
+                        }
                       />
                     </td>
                     <td className="px-3 py-4">
