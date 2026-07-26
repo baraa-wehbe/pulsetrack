@@ -2,6 +2,7 @@ import { parse } from "csv-parse/sync";
 
 import { LAB_ROW_ERROR_CODES } from "@/lib/lab-row-errors";
 import { normalizePatientMrn } from "@/lib/patient-validation";
+import { enqueueAcceptedObservationSyncs } from "@/server/fhir/observation-sync-queue";
 import { LAB_CSV_REQUIRED_HEADERS } from "@/server/labs/template";
 
 export { LAB_ROW_ERROR_CODES } from "@/lib/lab-row-errors";
@@ -127,7 +128,7 @@ const safeImportSummary = (labImport) => ({
   completedAt: labImport.completedAt?.toISOString() ?? null,
 });
 
-export const processLabImport = async (
+const processLabImportTransaction = async (
   prismaClient,
   importId,
   bytes,
@@ -237,7 +238,7 @@ export const processLabImport = async (
               INSERT INTO "lab_results" (
                 "id", "patient_id", "test_code", "collected_date",
                 "value", "unit", "ref_low", "ref_high", "source",
-                "created_at", "updated_at"
+                "fhir_sync_status", "created_at", "updated_at"
               )
               VALUES (
                 gen_random_uuid(),
@@ -249,6 +250,7 @@ export const processLabImport = async (
                 ${test.defaultRefLow?.toString() ?? null}::numeric,
                 ${test.defaultRefHigh?.toString() ?? null}::numeric,
                 'CSV'::"LabResultSource",
+                'PENDING'::"FhirSyncStatus",
                 ${now},
                 ${now}
               )
@@ -319,3 +321,19 @@ export const processLabImport = async (
     },
     { maxWait: 5_000, timeout: 30_000 },
   );
+
+export const processLabImport = async (
+  prismaClient,
+  importId,
+  bytes,
+  options,
+) => {
+  const summary = await processLabImportTransaction(
+    prismaClient,
+    importId,
+    bytes,
+    options,
+  );
+  await enqueueAcceptedObservationSyncs(prismaClient, importId);
+  return summary;
+};

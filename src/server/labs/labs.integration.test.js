@@ -155,6 +155,16 @@ test("mixed rows partially import with stable errors, counters, and authoritativ
   assert.equal(storedResult.unit, "%");
   assert.equal(storedResult.refLow.toString(), "4");
   assert.equal(storedResult.refHigh.toString(), "5.6");
+  assert.equal(storedResult.fhirSyncStatus, "PENDING");
+  let observationTasks = await prisma.fhirSyncTask.findMany({
+    where: {
+      resourceType: "OBSERVATION",
+      labResult: { patientId: patient.id },
+    },
+  });
+  assert.equal(observationTasks.length, 1);
+  assert.equal(observationTasks[0].labResultId, storedResult.id);
+  assert.equal(observationTasks[0].status, "PENDING");
 
   const retried = await processLabImport(prisma, labImport.id, metadata.bytes, {
     now: new Date("2026-07-26T13:00:00.000Z"),
@@ -168,6 +178,13 @@ test("mixed rows partially import with stable errors, counters, and authoritativ
     await prisma.labResult.count({ where: { patientId: patient.id } }),
     1,
   );
+  observationTasks = await prisma.fhirSyncTask.findMany({
+    where: {
+      resourceType: "OBSERVATION",
+      labResult: { patientId: patient.id },
+    },
+  });
+  assert.equal(observationTasks.length, 1);
 });
 
 test("import detail access and filters return every stored row exactly once", async () => {
@@ -244,4 +261,23 @@ test("corrected re-upload accepts corrected rows without duplicating prior resul
   assert.equal(accepted.unit, "mg/dL");
   assert.equal(accepted.refLow.toString(), "70");
   assert.equal(accepted.refHigh.toString(), "99");
+  const observationTasks = await prisma.fhirSyncTask.findMany({
+    where: {
+      resourceType: "OBSERVATION",
+      labResult: { patientId: patient.id },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  assert.equal(observationTasks.length, 2);
+  assert.deepEqual(
+    new Set(observationTasks.map(({ labResultId }) => labResultId)),
+    new Set(
+      (
+        await prisma.labResult.findMany({
+          where: { patientId: patient.id },
+          select: { id: true },
+        })
+      ).map(({ id }) => id),
+    ),
+  );
 });

@@ -11,8 +11,9 @@ lab observations use authoritative LOINC catalog coding and UCUM quantities.
 
 Patient push work is persisted in the existing `fhir_sync_tasks` table and can
 be processed with `npm run fhir:sync-patients`. The worker requires
-`FHIR_BASE_URL`, `FHIR_API_KEY`, and `FHIR_MRN_IDENTIFIER_SYSTEM`; these values
-remain server-only.
+`FHIR_BASE_URL`, `FHIR_API_KEY`, `FHIR_MRN_IDENTIFIER_SYSTEM`, and
+`FHIR_LAB_RESULT_IDENTIFIER_SYSTEM`; these values remain server-only.
 
-Observation push, pull synchronization, and synchronization UI remain
-deferred.
+Accepted CSV lab results are coalesced into Observation push tasks and wait for
+a confirmed candidate-owned Patient reference. Pull synchronization and
+synchronization UI remain deferred.
