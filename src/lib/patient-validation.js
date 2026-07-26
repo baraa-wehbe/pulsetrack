@@ -71,7 +71,7 @@ const requiredText = (maximum) =>
     .max(maximum, "too_long")
     .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), "invalid_text");
 
-const mrnSchema = z
+export const patientMrnSchema = z
   .string()
   .transform(normalizePatientMrn)
   .pipe(
@@ -119,7 +119,7 @@ export const createDateOfBirthSchema = (today = getLocalDateOnly()) =>
 export const createPatientSchemaForDate = (today = getLocalDateOnly()) =>
   z
     .object({
-      mrn: mrnSchema,
+      mrn: patientMrnSchema,
       firstName: requiredText(100),
       lastName: requiredText(100),
       dateOfBirth: createDateOfBirthSchema(today),
@@ -142,6 +142,18 @@ export const patientUpdateSchema = createPatientUpdateSchemaForDate();
 export const patientRouteParamsSchema = z
   .object({
     patientId: z.uuid("invalid_id"),
+  })
+  .strict();
+
+export const patientMrnRouteParamsSchema = z
+  .object({
+    patientId: patientMrnSchema,
+  })
+  .strict();
+
+export const patientIdentifierRouteParamsSchema = z
+  .object({
+    patientId: z.union([z.uuid("invalid_id"), patientMrnSchema]),
   })
   .strict();
 

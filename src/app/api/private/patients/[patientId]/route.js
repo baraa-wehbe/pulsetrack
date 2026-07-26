@@ -1,7 +1,7 @@
 import {
   createPatientUpdateSchemaForDate,
   getLocalDateOnly,
-  patientRouteParamsSchema,
+  patientIdentifierRouteParamsSchema,
 } from "@/lib/patient-validation";
 import { prisma } from "@/lib/prisma";
 import { withClinicianAuthentication } from "@/server/auth/api";
@@ -13,23 +13,26 @@ import {
   patientValidationResponse,
   readJsonBody,
 } from "@/server/patients/http";
-import { getPatientById, updatePatient } from "@/server/patients/service";
+import {
+  getPatientByIdentifier,
+  updatePatient,
+} from "@/server/patients/service";
 
-const getPatientId = async (params) => {
-  const parsed = patientRouteParamsSchema.safeParse(await params);
+const getPatientIdentifier = async (params) => {
+  const parsed = patientIdentifierRouteParamsSchema.safeParse(await params);
 
   return parsed.success ? parsed.data.patientId : null;
 };
 
 export const GET = withClinicianAuthentication(async (_request, { params }) => {
-  const patientId = await getPatientId(params);
+  const patientIdentifier = await getPatientIdentifier(params);
 
-  if (!patientId) {
+  if (!patientIdentifier) {
     return patientRouteValidationResponse();
   }
 
   try {
-    const patient = await getPatientById(prisma, patientId);
+    const patient = await getPatientByIdentifier(prisma, patientIdentifier);
 
     if (!patient) {
       return patientJson(
@@ -50,9 +53,9 @@ export const GET = withClinicianAuthentication(async (_request, { params }) => {
 
 export const PATCH = withClinicianAuthentication(
   async (request, { clinician, params }) => {
-    const patientId = await getPatientId(params);
+    const patientIdentifier = await getPatientIdentifier(params);
 
-    if (!patientId) {
+    if (!patientIdentifier) {
       return patientRouteValidationResponse();
     }
 
@@ -81,7 +84,7 @@ export const PATCH = withClinicianAuthentication(
       const result = await updatePatient(
         prisma,
         clinician.id,
-        patientId,
+        patientIdentifier,
         parsed.data,
       );
 

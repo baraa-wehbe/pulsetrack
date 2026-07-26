@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildPatientDetailHref,
   buildPatientListHref,
   getPatientBadge,
   PATIENT_BADGE_MAPPINGS,
+  resolvePatientListReturnPath,
 } from "@/lib/patient-list";
 import {
   PATIENT_LIST_DEFAULTS,
@@ -170,4 +172,31 @@ test("pagination links preserve active list state without default noise", () => 
     ),
     "/patients?search=Leila&origin=FHIR&page=2&pageSize=25",
   );
+});
+
+test("MRN detail links preserve only validated patient-list state", () => {
+  const detailHref = buildPatientDetailHref("PT-100", {
+    ...PATIENT_LIST_DEFAULTS,
+    search: "Leila",
+    origin: "FHIR",
+    page: 2,
+  });
+
+  assert.equal(
+    detailHref,
+    "/patients/PT-100?returnTo=%2Fpatients%3Fsearch%3DLeila%26origin%3DFHIR%26page%3D2",
+  );
+  assert.equal(
+    resolvePatientListReturnPath("/patients?search=Leila&origin=FHIR&page=2"),
+    "/patients?search=Leila&origin=FHIR&page=2",
+  );
+  for (const unsafe of [
+    "https://example.test/patients",
+    "//example.test/patients",
+    "/dashboard",
+    "/patients?archived=true",
+    "/patients#private",
+  ]) {
+    assert.equal(resolvePatientListReturnPath(unsafe), "/patients");
+  }
 });

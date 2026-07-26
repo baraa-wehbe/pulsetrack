@@ -9,7 +9,9 @@ import {
   isValidDateOnly,
   parsePatientListPageQuery,
   patientArchiveSchema,
+  patientIdentifierRouteParamsSchema,
   patientListQuerySchema,
+  patientMrnRouteParamsSchema,
   patientRouteParamsSchema,
 } from "@/lib/patient-validation";
 
@@ -142,6 +144,24 @@ test("update, route, list, and archive schemas use strict policies", () => {
   assert.equal(
     patientRouteParamsSchema.safeParse({ patientId: "not-a-uuid" }).success,
     false,
+  );
+  assert.deepEqual(
+    patientMrnRouteParamsSchema.parse({ patientId: " pt-100 " }),
+    { patientId: "PT-100" },
+  );
+  assert.equal(
+    patientMrnRouteParamsSchema.safeParse({ patientId: "invalid_mrn" }).success,
+    false,
+  );
+  assert.equal(
+    patientIdentifierRouteParamsSchema.safeParse({
+      patientId: "8700ba23-32c7-4d26-9497-35fcf7660f51",
+    }).success,
+    true,
+  );
+  assert.deepEqual(
+    patientIdentifierRouteParamsSchema.parse({ patientId: " pt-100 " }),
+    { patientId: "PT-100" },
   );
   assert.equal(patientListQuerySchema.safeParse({}).success, true);
   assert.deepEqual(patientListQuerySchema.parse({}), {

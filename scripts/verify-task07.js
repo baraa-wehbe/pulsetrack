@@ -1,7 +1,7 @@
 import "dotenv/config";
 
 import { randomBytes } from "node:crypto";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
 
@@ -105,12 +105,24 @@ const main = async () => {
     }
 
     console.log(
-      "Task 07 HTTP, browser, RTL, theme, responsive, and accessibility verification passed.",
+      "Patient HTTP, browser, RTL, theme, responsive, and accessibility verification passed.",
     );
   } finally {
     if (server && server.exitCode === null) {
-      server.kill();
-      await once(server, "exit").catch(() => {});
+      if (process.platform === "win32") {
+        spawnSync("taskkill.exe", ["/pid", String(server.pid), "/T", "/F"], {
+          stdio: "ignore",
+          windowsHide: true,
+        });
+      } else {
+        server.kill();
+      }
+      if (server.exitCode === null) {
+        await Promise.race([
+          once(server, "exit").catch(() => {}),
+          new Promise((resolve) => setTimeout(resolve, 2_000)),
+        ]);
+      }
     }
 
     if (clinicianId) {

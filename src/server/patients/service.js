@@ -1,11 +1,14 @@
 import {
+  PATIENT_DETAIL_SELECT,
   PATIENT_LIST_SELECT,
   PATIENT_SAFE_SELECT,
   toDateOnly,
+  toSafeActivePatientDetail,
   toSafePatient,
   toSafePatientListItem,
 } from "@/server/patients/serialization";
 import {
+  normalizePatientMrn,
   PATIENT_LIST_ALL,
   PATIENT_LIST_DEFAULTS,
 } from "@/lib/patient-validation";
@@ -154,6 +157,40 @@ export const getPatientById = async (prismaClient, patientId) => {
   return patient ? toSafePatient(patient) : null;
 };
 
+export const getActivePatientDetailByMrn = async (prismaClient, mrn) => {
+  const patient = await prismaClient.patient.findFirst({
+    where: {
+      mrn: normalizePatientMrn(mrn),
+      archivedAt: null,
+    },
+    select: PATIENT_DETAIL_SELECT,
+  });
+
+  return patient ? toSafeActivePatientDetail(patient) : null;
+};
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const patientIdentifierWhere = (identifier) =>
+  UUID_PATTERN.test(identifier)
+    ? {
+        OR: [
+          { id: identifier.toLowerCase() },
+          { mrn: normalizePatientMrn(identifier) },
+        ],
+      }
+    : { mrn: normalizePatientMrn(identifier) };
+
+export const getPatientByIdentifier = async (prismaClient, identifier) => {
+  const patient = await prismaClient.patient.findFirst({
+    where: patientIdentifierWhere(identifier),
+    select: PATIENT_SAFE_SELECT,
+  });
+
+  return patient ? toSafePatient(patient) : null;
+};
+
 export const createPatient = async (
   prismaClient,
   actorId,
@@ -218,8 +255,8 @@ export const updatePatient = async (
 ) => {
   try {
     const result = await prismaClient.$transaction(async (transaction) => {
-      const existingPatient = await transaction.patient.findUnique({
-        where: { id: patientId },
+      const existingPatient = await transaction.patient.findFirst({
+        where: patientIdentifierWhere(patientId),
         select: PATIENT_SAFE_SELECT,
       });
 
@@ -260,7 +297,7 @@ export const updatePatient = async (
         ]),
       );
       const updatedPatient = await transaction.patient.update({
-        where: { id: patientId },
+        where: { id: existingPatient.id },
         data,
         select: PATIENT_SAFE_SELECT,
       });
@@ -270,7 +307,7 @@ export const updatePatient = async (
         auditData({
           action: PATIENT_AUDIT_ACTIONS.update,
           actorId,
-          patientId,
+          patientId: existingPatient.id,
           metadata: { changedFields, changes },
         }),
       );
@@ -301,8 +338,8 @@ export const archivePatient = async (
   { auditWriter = defaultAuditWriter, now = () => new Date() } = {},
 ) => {
   const result = await prismaClient.$transaction(async (transaction) => {
-    const existingPatient = await transaction.patient.findUnique({
-      where: { id: patientId },
+    const existingPatient = await transaction.patient.findFirst({
+      where: patientIdentifierWhere(patientId),
       select: PATIENT_SAFE_SELECT,
     });
 
@@ -316,7 +353,7 @@ export const archivePatient = async (
 
     const archivedAt = now();
     const archivedPatient = await transaction.patient.update({
-      where: { id: patientId },
+      where: { id: existingPatient.id },
       data: { archivedAt },
       select: PATIENT_SAFE_SELECT,
     });
@@ -326,7 +363,7 @@ export const archivePatient = async (
       auditData({
         action: PATIENT_AUDIT_ACTIONS.archive,
         actorId,
-        patientId,
+        patientId: existingPatient.id,
         metadata: {
           changedFields: ["archivedAt"],
           changes: {

@@ -179,6 +179,16 @@ then patient ID. Source, ownership, and sync badges display the stored Prisma
 enum values without live FHIR calls. Send and Schedule lead to protected
 informational placeholders and do not create questionnaire data.
 
+Patient MRNs link to active-only detail routes at `/patients/[mrn]`. The detail
+page shows demographics, safe FHIR state badges, and assessment history ordered
+by creation time newest first. Completed DSMA-8 entries display the stored total
+score and risk band; the score maximum comes from the immutable questionnaire
+definition. The route never selects assessment tokens, recipient addresses,
+answers, scoring snapshots, delivery failures, or internal assessment IDs.
+Archived and unknown MRNs use the protected localized not-found state. Lab
+summary cards remain explicit placeholders until lab-result presentation is
+implemented.
+
 ## Commands
 
 ```bash
@@ -198,6 +208,7 @@ npm run test:auth    # Run clinician authentication unit tests
 npm run test:shell   # Run shell, navigation, language, RTL, and theme tests
 npm run test:patients # Run patient validation and UI architecture tests
 npm run test:patients:task07 # Run patient-list HTTP, browser, RTL, and axe checks
+npm run test:patients:task08 # Run patient-detail and patient-list browser checks
 ```
 
 ## Source structure

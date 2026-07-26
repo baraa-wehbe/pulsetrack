@@ -3,7 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 
-export default function ArchivePatientButton({ messages, patientId }) {
+export default function ArchivePatientButton({ messages, patientIdentifier }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -18,7 +18,7 @@ export default function ArchivePatientButton({ messages, patientId }) {
 
     try {
       const response = await fetch(
-        `/api/private/patients/${patientId}/archive`,
+        `/api/private/patients/${encodeURIComponent(patientIdentifier)}/archive`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

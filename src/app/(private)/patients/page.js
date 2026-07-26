@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import PatientBadge from "@/components/patient-badge";
 import { getTranslations } from "@/i18n/translations";
 import {
+  buildPatientDetailHref,
   buildPatientListHref,
   PATIENT_BADGE_MAPPINGS,
 } from "@/lib/patient-list";
@@ -54,11 +55,11 @@ const PatientActions = ({ messages, patient }) => (
   </div>
 );
 
-const MrnLink = ({ messages, patient }) => (
+const MrnLink = ({ listQuery, messages, patient }) => (
   <Link
     aria-label={`${messages.viewPatientMrn} ${patient.mrn}`}
     className="font-semibold text-teal-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
-    href={`/patients/${patient.id}`}
+    href={buildPatientDetailHref(patient.mrn, listQuery)}
   >
     <bdi dir="ltr">{patient.mrn}</bdi>
   </Link>
@@ -288,7 +289,11 @@ export default async function PatientsPage({ searchParams }) {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <MrnLink messages={messages} patient={patient} />
+                    <MrnLink
+                      listQuery={result.query}
+                      messages={messages}
+                      patient={patient}
+                    />
                     <h2 className="mt-1 break-words font-bold text-slate-950 dark:text-white">
                       {patient.firstName} {patient.lastName}
                     </h2>
@@ -370,7 +375,11 @@ export default async function PatientsPage({ searchParams }) {
                 {result.patients.map((patient) => (
                   <tr key={patient.id}>
                     <td className="px-3 py-4">
-                      <MrnLink messages={messages} patient={patient} />
+                      <MrnLink
+                        listQuery={result.query}
+                        messages={messages}
+                        patient={patient}
+                      />
                     </td>
                     <th
                       className="break-words px-3 py-4 text-start font-semibold text-slate-950 dark:text-white"

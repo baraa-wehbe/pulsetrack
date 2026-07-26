@@ -19,3 +19,11 @@ FHIR badges map the schema states directly:
 
 No live FHIR checks or raw synchronization errors are exposed by the list.
 Send and Schedule routes are protected informational placeholders only.
+
+The detail route uses the normalized MRN (`/patients/[mrn]`) and resolves only
+rows where `archived_at IS NULL`. It renders safe demographics and assessment
+history ordered by assessment creation time descending with ID used only as a
+database ordering fallback. Stored response totals and risk bands are displayed;
+the DSMA-8 maximum is read from the stored questionnaire definition. Token
+hashes, recipient addresses, answer payloads, scoring snapshots, delivery
+errors, and internal assessment identifiers are not selected for the page.

@@ -1,6 +1,6 @@
 import {
   patientArchiveSchema,
-  patientRouteParamsSchema,
+  patientIdentifierRouteParamsSchema,
 } from "@/lib/patient-validation";
 import { prisma } from "@/lib/prisma";
 import { withClinicianAuthentication } from "@/server/auth/api";
@@ -16,7 +16,9 @@ import { archivePatient } from "@/server/patients/service";
 
 export const POST = withClinicianAuthentication(
   async (request, { clinician, params }) => {
-    const parsedParams = patientRouteParamsSchema.safeParse(await params);
+    const parsedParams = patientIdentifierRouteParamsSchema.safeParse(
+      await params,
+    );
 
     if (!parsedParams.success) {
       return patientRouteValidationResponse();

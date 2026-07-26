@@ -1,6 +1,7 @@
 import {
   PATIENT_LIST_ALL,
   PATIENT_LIST_DEFAULTS,
+  patientListQuerySchema,
 } from "@/lib/patient-validation";
 
 const UNKNOWN_BADGE = Object.freeze({
@@ -87,4 +88,37 @@ export const buildPatientListHref = (query, overrides = {}) => {
 
   const serialized = parameters.toString();
   return serialized ? `/patients?${serialized}` : "/patients";
+};
+
+export const buildPatientDetailHref = (mrn, query) => {
+  const returnTo = buildPatientListHref(query);
+  const parameters = new URLSearchParams({ returnTo });
+
+  return `/patients/${encodeURIComponent(mrn)}?${parameters}`;
+};
+
+export const resolvePatientListReturnPath = (value) => {
+  if (typeof value !== "string" || value.length > 500) {
+    return "/patients";
+  }
+
+  try {
+    const url = new URL(value, "https://pulsetrack.local");
+
+    if (
+      url.origin !== "https://pulsetrack.local" ||
+      url.pathname !== "/patients" ||
+      url.hash
+    ) {
+      return "/patients";
+    }
+
+    const parsed = patientListQuerySchema.safeParse(
+      Object.fromEntries(url.searchParams),
+    );
+
+    return parsed.success ? buildPatientListHref(parsed.data) : "/patients";
+  } catch {
+    return "/patients";
+  }
 };

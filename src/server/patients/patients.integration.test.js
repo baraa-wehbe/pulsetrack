@@ -16,6 +16,7 @@ import { hashPassword } from "@/server/auth/password";
 import {
   archivePatient,
   createPatient,
+  getActivePatientDetailByMrn,
   getPatientById,
   listActivePatients,
   PATIENT_AUDIT_ACTIONS,
@@ -88,6 +89,69 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
       await getPatientById(prisma, "8700ba23-32c7-4d26-9497-35fcf7660f51"),
       null,
     );
+
+    const questionnaire = await prisma.questionnaire.findUnique({
+      where: {
+        code_version: {
+          code: "dsma-8",
+          version: "1.0",
+        },
+      },
+      select: { id: true },
+    });
+    assert.ok(questionnaire);
+    const completedAssessment = await prisma.assessment.create({
+      data: {
+        patientId: created.id,
+        questionnaireId: questionnaire.id,
+        createdById: clinician.id,
+        status: "COMPLETED",
+        recipientEmail: "assessment-detail@example.test",
+        scheduledFor: new Date("2026-07-20T08:00:00.000Z"),
+        tokenHash: randomBytes(32).toString("hex"),
+        sentAt: new Date("2026-07-20T08:05:00.000Z"),
+        expiresAt: new Date("2026-07-27T08:05:00.000Z"),
+        completedAt: new Date("2026-07-20T09:00:00.000Z"),
+        tokenConsumedAt: new Date("2026-07-20T09:00:00.000Z"),
+        createdAt: new Date("2026-07-20T08:00:00.000Z"),
+        response: {
+          create: {
+            answers: {},
+            totalScore: 15,
+            riskBand: "HIGH",
+            scoringSnapshot: {},
+            submittedAt: new Date("2026-07-20T09:00:00.000Z"),
+          },
+        },
+      },
+      select: { id: true },
+    });
+    await prisma.assessment.create({
+      data: {
+        patientId: created.id,
+        questionnaireId: questionnaire.id,
+        createdById: clinician.id,
+        status: "SCHEDULED",
+        recipientEmail: "assessment-detail@example.test",
+        scheduledFor: new Date("2026-07-24T08:00:00.000Z"),
+        createdAt: new Date("2026-07-24T08:00:00.000Z"),
+      },
+      select: { id: true },
+    });
+
+    const detail = await getActivePatientDetailByMrn(prisma, created.mrn);
+    assert.equal(detail.assessments.length, 2);
+    assert.equal(detail.assessments[0].status, "SCHEDULED");
+    assert.equal(detail.assessments[0].response, null);
+    assert.equal(detail.assessments[1].status, "COMPLETED");
+    assert.equal(detail.assessments[1].response.totalScore, 15);
+    assert.equal(detail.assessments[1].response.riskBand, "HIGH");
+    assert.equal(detail.assessments[1].response.scoreMaximum, 24);
+    assert.equal(
+      JSON.stringify(detail).includes(completedAssessment.id),
+      false,
+    );
+    assert.equal(JSON.stringify(detail).includes("tokenHash"), false);
 
     const duplicate = createPatientSchemaForDate(TODAY).parse({
       ...input,
@@ -256,6 +320,7 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
       ),
       false,
     );
+    assert.equal(await getActivePatientDetailByMrn(prisma, created.mrn), null);
 
     const repeatedArchive = await archivePatient(
       prisma,
@@ -309,6 +374,9 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
     if (patientIds.length > 0) {
       await prisma.auditLog.deleteMany({
         where: { entityType: "PATIENT", entityId: { in: patientIds } },
+      });
+      await prisma.assessment.deleteMany({
+        where: { patientId: { in: patientIds } },
       });
       await prisma.patient.deleteMany({ where: { id: { in: patientIds } } });
     }

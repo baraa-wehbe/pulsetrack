@@ -200,9 +200,13 @@ const main = async () => {
     );
     assert.equal(unknown.status, 404);
     const malformed = await authenticatedRequest(
-      "/api/private/patients/not-a-uuid",
+      "/api/private/patients/not_an_mrn",
     );
     assert.equal(malformed.status, 400);
+    const unknownMrn = await authenticatedRequest(
+      "/api/private/patients/UNKNOWN-MRN",
+    );
+    assert.equal(unknownMrn.status, 404);
 
     const duplicate = await authenticatedRequest("/api/private/patients", {
       method: "POST",

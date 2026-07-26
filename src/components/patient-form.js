@@ -79,7 +79,7 @@ export default function PatientForm({ initialPatient, messages, mode, today }) {
       const endpoint =
         mode === "create"
           ? "/api/private/patients"
-          : `/api/private/patients/${initialPatient.id}`;
+          : `/api/private/patients/${encodeURIComponent(initialPatient.mrn)}`;
       const response = await fetch(endpoint, {
         method: mode === "create" ? "POST" : "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -98,7 +98,9 @@ export default function PatientForm({ initialPatient, messages, mode, today }) {
         return;
       }
 
-      window.location.assign(`/patients/${body.patient.id}`);
+      window.location.assign(
+        `/patients/${encodeURIComponent(body.patient.mrn)}`,
+      );
     } catch {
       setFormError(messages.patientFormError);
     } finally {
@@ -354,7 +356,9 @@ export default function PatientForm({ initialPatient, messages, mode, today }) {
         <Link
           className="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           href={
-            mode === "edit" ? `/patients/${initialPatient.id}` : "/patients"
+            mode === "edit"
+              ? `/patients/${encodeURIComponent(initialPatient.mrn)}`
+              : "/patients"
           }
         >
           {messages.cancel}

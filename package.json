@@ -21,7 +21,7 @@
     "db:migrate:status": "prisma migrate status",
     "clinician:create": "tsx --tsconfig jsconfig.json scripts/create-clinician.js",
     "db:seed": "prisma db seed",
-    "test": "tsx --tsconfig jsconfig.json --test prisma/seed.test.js src/server/auth/auth.test.js src/server/auth/create-clinician.test.js src/server/preferences/preferences.test.js src/components/application-shell.test.js src/lib/patient-validation.test.js src/server/patients/patient-list.test.js src/components/patient-management.test.js",
+    "test": "tsx --tsconfig jsconfig.json --test prisma/seed.test.js src/server/auth/auth.test.js src/server/auth/create-clinician.test.js src/server/preferences/preferences.test.js src/components/application-shell.test.js src/lib/patient-validation.test.js src/server/patients/patient-list.test.js src/server/patients/patient-detail.test.js src/components/patient-management.test.js",
     "test:seed": "tsx --test prisma/seed.test.js",
     "test:seed:integration": "tsx --test prisma/seed.integration.test.js",
     "test:auth": "tsx --tsconfig jsconfig.json --test src/server/auth/auth.test.js",
@@ -31,11 +31,12 @@
     "test:shell": "tsx --tsconfig jsconfig.json --test src/server/preferences/preferences.test.js src/components/application-shell.test.js",
     "test:shell:e2e": "tsx --tsconfig jsconfig.json scripts/verify-shell-flow.js",
     "test:shell:browser": "tsx --tsconfig jsconfig.json scripts/verify-shell-browser.js",
-    "test:patients": "tsx --tsconfig jsconfig.json --test src/lib/patient-validation.test.js src/server/patients/patient-list.test.js src/components/patient-management.test.js",
+    "test:patients": "tsx --tsconfig jsconfig.json --test src/lib/patient-validation.test.js src/server/patients/patient-list.test.js src/server/patients/patient-detail.test.js src/components/patient-management.test.js",
     "test:patients:integration": "tsx --tsconfig jsconfig.json --test src/server/patients/patients.integration.test.js",
     "test:patients:e2e": "tsx --tsconfig jsconfig.json scripts/verify-patient-flow.js",
     "test:patients:browser": "tsx --tsconfig jsconfig.json scripts/verify-patient-browser.js",
-    "test:patients:task07": "tsx --tsconfig jsconfig.json scripts/verify-task07.js"
+    "test:patients:task07": "tsx --tsconfig jsconfig.json scripts/verify-task07.js",
+    "test:patients:task08": "tsx --tsconfig jsconfig.json scripts/verify-task07.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.0",

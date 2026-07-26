@@ -146,16 +146,98 @@ const main = async () => {
 
     await page.locator("#dateOfBirth").fill(getLocalDateOnly());
     await page.getByRole("button", { name: "حفظ المريض" }).click();
-    await page.waitForURL(/\/patients\/[0-9a-f-]+$/);
-    const patientId = page.url().split("/").at(-1);
+    await page.waitForURL(`${BASE_URL}/patients/${normalizedMrn}`);
+    const storedPatient = await prisma.patient.findUnique({
+      where: { mrn: normalizedMrn },
+      select: { id: true },
+    });
+    assert.ok(storedPatient);
+    const patientId = storedPatient.id;
     patientIds.push(patientId);
 
-    assert.equal(await page.getByText(normalizedMrn).isVisible(), true);
+    assert.equal(await page.getByText(normalizedMrn).first().isVisible(), true);
     assert.equal(
       await page.getByText("browser.patient@example.test").isVisible(),
       true,
     );
+    await page
+      .getByRole("heading", { name: "لا توجد تقييمات بعد" })
+      .waitFor({ state: "visible" });
+    assert.equal(
+      await page.getByText("ستتوفر بيانات التحاليل في مهمة لاحقة.").count(),
+      3,
+    );
     await assertNoSeriousAccessibilityViolations(page);
+
+    const questionnaire = await prisma.questionnaire.findUnique({
+      where: {
+        code_version: {
+          code: "dsma-8",
+          version: "1.0",
+        },
+      },
+      select: { id: true },
+    });
+    assert.ok(questionnaire);
+    const sensitiveTokenHash = randomBytes(32).toString("hex");
+    await prisma.assessment.create({
+      data: {
+        patientId,
+        questionnaireId: questionnaire.id,
+        createdById: (
+          await prisma.clinician.findUnique({
+            where: { email },
+            select: { id: true },
+          })
+        ).id,
+        status: "COMPLETED",
+        recipientEmail: "detail-browser@example.test",
+        scheduledFor: new Date("2026-07-20T08:00:00.000Z"),
+        tokenHash: sensitiveTokenHash,
+        sentAt: new Date("2026-07-20T08:05:00.000Z"),
+        expiresAt: new Date("2026-07-27T08:05:00.000Z"),
+        completedAt: new Date("2026-07-20T09:00:00.000Z"),
+        tokenConsumedAt: new Date("2026-07-20T09:00:00.000Z"),
+        createdAt: new Date("2026-07-20T08:00:00.000Z"),
+        response: {
+          create: {
+            answers: {},
+            totalScore: 15,
+            riskBand: "HIGH",
+            scoringSnapshot: {},
+            submittedAt: new Date("2026-07-20T09:00:00.000Z"),
+          },
+        },
+      },
+    });
+    await prisma.assessment.create({
+      data: {
+        patientId,
+        questionnaireId: questionnaire.id,
+        createdById: (
+          await prisma.clinician.findUnique({
+            where: { email },
+            select: { id: true },
+          })
+        ).id,
+        status: "SCHEDULED",
+        recipientEmail: "detail-browser@example.test",
+        scheduledFor: new Date("2026-07-24T08:00:00.000Z"),
+        createdAt: new Date("2026-07-24T08:00:00.000Z"),
+      },
+    });
+    await page.reload();
+    const assessmentItems = page.locator(
+      '[aria-labelledby="assessment-history-heading"] ol > li',
+    );
+    assert.equal(await assessmentItems.count(), 2);
+    assert.match(await assessmentItems.first().textContent(), /مجدول/);
+    assert.match(await assessmentItems.nth(1).textContent(), /15\s*\/\s*24/);
+    assert.match(await assessmentItems.nth(1).textContent(), /خطورة مرتفعة/);
+    const detailHtml = await page.content();
+    assert.equal(detailHtml.includes(patientId), false);
+    assert.equal(detailHtml.includes(sensitiveTokenHash), false);
+    assert.equal(detailHtml.includes("detail-browser@example.test"), false);
 
     for (let index = 0; index < 11; index += 1) {
       const response = await page.request.post("/api/private/patients", {
@@ -186,13 +268,9 @@ const main = async () => {
       `/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=NOT_SYNCED&pageSize=10`,
     );
     assert.match(page.url(), /search=/);
-    assert.equal(
-      await page.locator(`a[href="/patients/${patientId}"]`).count(),
-      2,
-    );
-    for (const detailLink of await page
-      .locator(`a[href="/patients/${patientId}"]`)
-      .all()) {
+    const detailSelector = `a[href^="/patients/${normalizedMrn}?returnTo="]`;
+    assert.equal(await page.locator(detailSelector).count(), 2);
+    for (const detailLink of await page.locator(detailSelector).all()) {
       assert.equal((await detailLink.textContent()).trim(), normalizedMrn);
     }
     assert.equal(
@@ -203,18 +281,23 @@ const main = async () => {
       await page.locator(`a[href="/patients/${patientId}/schedule"]`).count(),
       2,
     );
-    assert.equal(
-      await page.locator(`tr a[href="/patients/${patientId}"]`).count(),
-      1,
-    );
+    assert.equal(await page.locator(`tr ${detailSelector}`).count(), 1);
     assert.equal(
       await page
-        .locator(`tr:has(a[href="/patients/${patientId}"])`)
+        .locator(`tr:has(${detailSelector})`)
         .getByText("Browser Verification", { exact: true })
         .locator("a")
         .count(),
       0,
     );
+    await page.locator(detailSelector).filter({ visible: true }).click();
+    await page.waitForURL(new RegExp(`/patients/${normalizedMrn}\\?returnTo=`));
+    const backHref = await page
+      .getByRole("link", { name: "العودة إلى المرضى" })
+      .getAttribute("href");
+    assert.match(backHref, /search=browser-/);
+    assert.match(backHref, /origin=LOCAL/);
+    await page.goto(backHref);
 
     const assessmentCount = await prisma.assessment.count({
       where: { patientId },
@@ -250,18 +333,19 @@ const main = async () => {
     await page.goto("/patients");
     await assertNoSeriousAccessibilityViolations(page);
 
-    await page.goto(`/patients/${patientId}`);
+    await page.goto(`/patients/${normalizedMrn}`);
     await page.getByRole("link", { name: "تعديل المريض" }).click();
-    await page.waitForURL(`${BASE_URL}/patients/${patientId}/edit`);
+    await page.waitForURL(`${BASE_URL}/patients/${normalizedMrn}/edit`);
     await page.locator("#firstName").fill("Updated Browser");
     await page.locator("#email").fill(" Updated.Browser@Example.TEST ");
     await page.getByRole("button", { name: "حفظ المريض" }).click();
-    await page.waitForURL(`${BASE_URL}/patients/${patientId}`);
-    assert.equal(await page.getByText(/Updated Browser/).isVisible(), true);
-    assert.equal(
-      await page.getByText("updated.browser@example.test").isVisible(),
-      true,
-    );
+    await page.waitForURL(`${BASE_URL}/patients/${normalizedMrn}`);
+    await page
+      .getByRole("heading", { name: /Updated Browser/ })
+      .waitFor({ state: "visible" });
+    await page
+      .getByText("updated.browser@example.test")
+      .waitFor({ state: "visible" });
 
     const duplicateResponse = await page.request.post("/api/private/patients", {
       data: {
@@ -293,7 +377,7 @@ const main = async () => {
       true,
     );
 
-    await page.goto(`/patients/${patientId}`);
+    await page.goto(`/patients/${normalizedMrn}`);
     const archiveTrigger = page.getByRole("button", {
       name: "أرشفة المريض",
       exact: true,
@@ -316,6 +400,19 @@ const main = async () => {
     assert.equal(
       await page.getByText("Updated Browser", { exact: false }).count(),
       0,
+    );
+    const archivedDetail = await page.goto(`/patients/${normalizedMrn}`);
+    assert.ok([200, 404].includes(archivedDetail.status()));
+    assert.ok(
+      (await page.locator('meta[name="robots"][content="noindex"]').count()) >=
+        1,
+    );
+    assert.equal((await page.content()).includes("Updated Browser"), false);
+    const unknownDetail = await page.goto(`/patients/UNKNOWN-${suffix}`);
+    assert.ok([200, 404].includes(unknownDetail.status()));
+    assert.ok(
+      (await page.locator('meta[name="robots"][content="noindex"]').count()) >=
+        1,
     );
 
     await page.setViewportSize({ width: 375, height: 812 });
@@ -340,6 +437,9 @@ const main = async () => {
     if (patientIds.length > 0) {
       await prisma.auditLog.deleteMany({
         where: { entityType: "PATIENT", entityId: { in: patientIds } },
+      });
+      await prisma.assessment.deleteMany({
+        where: { patientId: { in: patientIds } },
       });
       await prisma.patient.deleteMany({ where: { id: { in: patientIds } } });
     }

@@ -1,13 +1,13 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import PatientForm from "@/components/patient-form";
 import { getTranslations } from "@/i18n/translations";
 import {
   getLocalDateOnly,
-  patientRouteParamsSchema,
+  patientIdentifierRouteParamsSchema,
 } from "@/lib/patient-validation";
 import { prisma } from "@/lib/prisma";
-import { getPatientById } from "@/server/patients/service";
+import { getPatientByIdentifier } from "@/server/patients/service";
 import { getRequestPreferences } from "@/server/preferences/current";
 
 export const metadata = {
@@ -15,7 +15,9 @@ export const metadata = {
 };
 
 export default async function EditPatientPage({ params }) {
-  const parsedParams = patientRouteParamsSchema.safeParse(await params);
+  const parsedParams = patientIdentifierRouteParamsSchema.safeParse(
+    await params,
+  );
 
   if (!parsedParams.success) {
     notFound();
@@ -23,7 +25,7 @@ export default async function EditPatientPage({ params }) {
 
   const [{ language }, patient] = await Promise.all([
     getRequestPreferences(),
-    getPatientById(prisma, parsedParams.data.patientId),
+    getPatientByIdentifier(prisma, parsedParams.data.patientId),
   ]);
 
   if (!patient) {
@@ -31,7 +33,7 @@ export default async function EditPatientPage({ params }) {
   }
 
   if (patient.archivedAt) {
-    redirect(`/patients/${patient.id}`);
+    notFound();
   }
 
   const messages = getTranslations(language);
@@ -54,7 +56,15 @@ export default async function EditPatientPage({ params }) {
         {messages.editPatientDescription}
       </p>
       <PatientForm
-        initialPatient={patient}
+        initialPatient={{
+          mrn: patient.mrn,
+          firstName: patient.firstName,
+          lastName: patient.lastName,
+          dateOfBirth: patient.dateOfBirth,
+          sex: patient.sex,
+          email: patient.email,
+          phone: patient.phone,
+        }}
         messages={messages}
         mode="edit"
         today={getLocalDateOnly()}
