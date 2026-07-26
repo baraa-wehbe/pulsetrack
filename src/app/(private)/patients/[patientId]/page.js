@@ -5,7 +5,10 @@ import ArchivePatientButton from "@/components/archive-patient-button";
 import AssessmentBadge from "@/components/assessment-badge";
 import PatientBadge from "@/components/patient-badge";
 import { getTranslations } from "@/i18n/translations";
-import { getRiskPresentation } from "@/lib/assessment-presentation";
+import {
+  getAssessmentTimelineEntries,
+  getRiskPresentation,
+} from "@/lib/assessment-presentation";
 import { resolvePatientListReturnPath } from "@/lib/patient-list";
 import { patientMrnRouteParamsSchema } from "@/lib/patient-validation";
 import { prisma } from "@/lib/prisma";
@@ -237,32 +240,14 @@ export default async function PatientDetailsPage({ params, searchParams }) {
                   </div>
 
                   <dl className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-3 dark:text-slate-300">
-                    <div>
-                      <dt className="font-semibold">
-                        {messages.assessmentScheduleLabel}
-                      </dt>
-                      <dd>
-                        {formatTimestamp(assessment.scheduledFor, language)}
-                      </dd>
-                    </div>
-                    {assessment.sentAt && (
-                      <div>
+                    {getAssessmentTimelineEntries(assessment).map((entry) => (
+                      <div key={`${entry.translationKey}-${entry.value}`}>
                         <dt className="font-semibold">
-                          {messages.assessmentSentLabel}
+                          {messages[entry.translationKey]}
                         </dt>
-                        <dd>{formatTimestamp(assessment.sentAt, language)}</dd>
+                        <dd>{formatTimestamp(entry.value, language)}</dd>
                       </div>
-                    )}
-                    {assessment.expiresAt && (
-                      <div>
-                        <dt className="font-semibold">
-                          {messages.assessmentExpiryLabel}
-                        </dt>
-                        <dd>
-                          {formatTimestamp(assessment.expiresAt, language)}
-                        </dd>
-                      </div>
-                    )}
+                    ))}
                   </dl>
 
                   {assessment.deliveryFailed && (

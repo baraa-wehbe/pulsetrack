@@ -123,6 +123,7 @@ test("detail page handles 404s, demographics, history, empty, lab, and safe prop
   assert.match(page, /resolvePatientListReturnPath/);
   assert.match(page, /demographics-heading/);
   assert.match(page, /assessment-history-heading/);
+  assert.match(page, /getAssessmentTimelineEntries\(assessment\)/);
   assert.match(page, /noAssessmentsTitle/);
   assert.match(page, /dsmaScore/);
   assert.match(page, /riskLevel/);

@@ -58,6 +58,7 @@ test("due scheduler invokes the shared delivery function for each due assessment
     delivered: 1,
     failed: 1,
     skipped: 0,
+    cancelled: 0,
   });
 });
 
@@ -78,7 +79,12 @@ test("expiry processing changes only sent assessments whose expiry has passed", 
 
   assert.equal(count, 3);
   assert.deepEqual(query, {
-    where: { status: "SENT", expiresAt: { lte: now } },
+    where: {
+      status: "SENT",
+      tokenConsumedAt: null,
+      completedAt: null,
+      expiresAt: { lte: now },
+    },
     data: { status: "EXPIRED" },
   });
 });

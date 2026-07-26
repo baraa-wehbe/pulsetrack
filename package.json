@@ -40,6 +40,7 @@
     "test:patients:task08": "tsx --tsconfig jsconfig.json scripts/verify-task07.js",
     "test:assessments": "tsx --tsconfig jsconfig.json --test src/lib/assessment-validation.test.js src/server/assessments/assessment-service.test.js",
     "test:assessments:integration": "tsx --tsconfig jsconfig.json --test src/server/assessments/assessment.integration.test.js",
+    "test:assessment-job": "tsx --tsconfig jsconfig.json --test src/server/assessments/assessment-job.test.js src/lib/assessment-presentation.test.js",
     "test:public-assessment": "tsx --tsconfig jsconfig.json --test src/lib/questionnaire.test.js src/server/assessments/public-assessment.test.js",
     "test:public-assessment:integration": "tsx --tsconfig jsconfig.json --test src/server/assessments/public-assessment.integration.test.js",
     "test:public-assessment:browser": "tsx --tsconfig jsconfig.json scripts/verify-public-assessment.js"

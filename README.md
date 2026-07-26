@@ -201,7 +201,12 @@ npm run assessments:deliver-due
 ```
 
 Configure the server-only `RESEND_API_KEY` and `ASSESSMENT_EMAIL_FROM`
-variables documented in `.env.example`. Each delivery uses a cryptographically
+variables documented in `.env.example`. Production schedulers may call
+`POST /api/scheduled/assessments` with `Authorization: Bearer <scheduler-secret>`;
+configure the server-only `SCHEDULER_SECRET` with at least 32 random characters.
+The endpoint and CLI invoke the same delivery-and-expiry job. PostgreSQL
+transaction-scoped advisory locks serialize each assessment delivery, and a
+stable provider idempotency key protects interrupted retries. Each delivery uses a cryptographically
 random token and stores only its SHA-256 hash. The raw token exists only in the
 patient link passed to the email provider; it is never returned by the API or
 written to logs or audit metadata. Confirmed sends set `sent_at` and an expiry
@@ -239,6 +244,7 @@ npm run test:patients # Run patient validation and UI architecture tests
 npm run test:patients:task07 # Run patient-list HTTP, browser, RTL, and axe checks
 npm run test:assessments # Run assessment validation and security unit tests
 npm run test:assessments:integration # Run mocked-provider database tests
+npm run test:assessment-job # Run scheduler authorization and history-status tests
 npm run test:public-assessment # Run public form and scoring unit tests
 npm run test:public-assessment:integration # Run single-use PostgreSQL tests
 npm run test:patients:task08 # Run patient-detail and patient-list browser checks

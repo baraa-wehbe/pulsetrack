@@ -43,7 +43,9 @@ const toSafeAssessment = (assessment) => {
     sentAt: assessment.sentAt?.toISOString() ?? null,
     expiresAt: assessment.expiresAt?.toISOString() ?? null,
     completedAt: assessment.completedAt?.toISOString() ?? null,
+    cancelledAt: assessment.cancelledAt?.toISOString() ?? null,
     createdAt: assessment.createdAt.toISOString(),
+    updatedAt: (assessment.updatedAt ?? assessment.createdAt).toISOString(),
     deliveryFailed:
       assessment.status === "FAILED" && Boolean(assessment.lastSendError),
     response: assessment.response
@@ -125,7 +127,9 @@ export const PATIENT_DETAIL_SELECT = Object.freeze({
       sentAt: true,
       expiresAt: true,
       completedAt: true,
+      cancelledAt: true,
       createdAt: true,
+      updatedAt: true,
       lastSendError: true,
       questionnaire: {
         select: {

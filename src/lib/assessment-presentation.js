@@ -56,6 +56,52 @@ export const RISK_PRESENTATIONS = Object.freeze({
 export const getAssessmentStatusPresentation = (status) =>
   ASSESSMENT_STATUS_PRESENTATIONS[status] ?? UNKNOWN_PRESENTATION;
 
+export const getAssessmentTimelineEntries = (assessment) => {
+  const entries = [
+    {
+      translationKey: "assessmentScheduleLabel",
+      value: assessment.scheduledFor,
+    },
+  ];
+
+  if (assessment.sentAt) {
+    entries.push({
+      translationKey: "assessmentSentLabel",
+      value: assessment.sentAt,
+    });
+  }
+
+  const terminalEntry = {
+    COMPLETED: {
+      translationKey: "assessmentCompletedLabel",
+      value: assessment.completedAt,
+    },
+    EXPIRED: {
+      translationKey: "assessmentExpiredLabel",
+      value: assessment.expiresAt,
+    },
+    FAILED: {
+      translationKey: "assessmentFailedLabel",
+      value: assessment.updatedAt,
+    },
+    CANCELLED: {
+      translationKey: "assessmentCancelledLabel",
+      value: assessment.cancelledAt,
+    },
+  }[assessment.status];
+
+  if (terminalEntry?.value) {
+    entries.push(terminalEntry);
+  } else if (assessment.status === "SENT" && assessment.expiresAt) {
+    entries.push({
+      translationKey: "assessmentExpiryLabel",
+      value: assessment.expiresAt,
+    });
+  }
+
+  return entries;
+};
+
 export const getRiskPresentation = (riskBand) =>
   RISK_PRESENTATIONS[riskBand] ?? {
     ...UNKNOWN_PRESENTATION,

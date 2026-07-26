@@ -107,6 +107,10 @@ const translations = {
     assessmentScheduleLabel: "Scheduled for",
     assessmentSentLabel: "Sent",
     assessmentExpiryLabel: "Expires",
+    assessmentCompletedLabel: "Completed",
+    assessmentExpiredLabel: "Expired",
+    assessmentFailedLabel: "Failed",
+    assessmentCancelledLabel: "Cancelled",
     publicAssessmentUnavailableTitle: "Assessment unavailable",
     publicAssessmentUnavailableDescription:
       "This assessment link is invalid, expired, or has already been used.",
@@ -344,6 +348,10 @@ const translations = {
     assessmentScheduleLabel: "مجدول في",
     assessmentSentLabel: "أُرسل في",
     assessmentExpiryLabel: "تنتهي الصلاحية في",
+    assessmentCompletedLabel: "اكتمل في",
+    assessmentExpiredLabel: "انتهت الصلاحية في",
+    assessmentFailedLabel: "فشل في",
+    assessmentCancelledLabel: "أُلغي في",
     publicAssessmentUnavailableTitle: "التقييم غير متاح",
     publicAssessmentUnavailableDescription:
       "رابط التقييم غير صالح أو منتهي الصلاحية أو تم استخدامه مسبقًا.",

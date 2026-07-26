@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   createAssessmentToken,
   hashAssessmentToken,
@@ -182,6 +184,11 @@ const deliveryLookupSelect = Object.freeze({
   questionnaire: { select: { title: true } },
 });
 
+const createDeliveryIdempotencyKey = (assessmentId, attemptNumber) =>
+  createHash("sha256")
+    .update(`pulsetrack:assessment-delivery:${assessmentId}:${attemptNumber}`)
+    .digest("hex");
+
 export const deliverAssessment = async (
   prismaClient,
   assessmentId,
@@ -192,77 +199,125 @@ export const deliverAssessment = async (
     appUrl = process.env.NEXT_PUBLIC_APP_URL,
     tokenFactory = createAssessmentToken,
   } = {},
-) => {
-  const assessment = await prismaClient.assessment.findUnique({
-    where: { id: assessmentId },
-    select: deliveryLookupSelect,
-  });
+) =>
+  prismaClient.$transaction(
+    async (transaction) => {
+      const [claim] = await transaction.$queryRaw`
+        SELECT pg_try_advisory_xact_lock(
+          hashtextextended(${assessmentId}::text, 0)
+        ) AS claimed
+      `;
+      if (!claim?.claimed) {
+        throw new AssessmentServiceError(
+          "DELIVERY_CLAIMED",
+          "Assessment delivery is already being processed.",
+        );
+      }
 
-  if (!assessment) {
-    throw new AssessmentServiceError(
-      "ASSESSMENT_NOT_FOUND",
-      "Assessment not found.",
-    );
-  }
-  if (assessment.patient.archivedAt) {
-    await prismaClient.assessment.updateMany({
-      where: { id: assessment.id, status: "SCHEDULED" },
-      data: { status: "CANCELLED", cancelledAt: now },
-    });
-    throw new AssessmentServiceError(
-      "PATIENT_NOT_FOUND",
-      "Active patient not found.",
-    );
-  }
-  if (assessment.status !== "SCHEDULED" && assessment.status !== "FAILED") {
-    throw new AssessmentServiceError(
-      "NOT_DELIVERABLE",
-      "Assessment cannot be delivered in its current state.",
-    );
-  }
-  if (assessment.scheduledFor > now) {
-    throw new AssessmentServiceError(
-      "NOT_DUE",
-      "Assessment is not due for delivery.",
-    );
-  }
-  if (!appUrl) {
-    throw new AssessmentServiceError(
-      "APP_URL_UNAVAILABLE",
-      "Assessment delivery configuration is unavailable.",
-    );
-  }
+      const assessment = await transaction.assessment.findUnique({
+        where: { id: assessmentId },
+        select: deliveryLookupSelect,
+      });
 
-  const rawToken = tokenFactory();
-  const tokenHash = hashAssessmentToken(rawToken);
-  const assessmentUrl = new URL(
-    `/assessment/${encodeURIComponent(rawToken)}`,
-    appUrl,
-  ).toString();
-  const attemptNumber = assessment.sendAttempts + 1;
+      if (!assessment) {
+        throw new AssessmentServiceError(
+          "ASSESSMENT_NOT_FOUND",
+          "Assessment not found.",
+        );
+      }
+      if (assessment.patient.archivedAt) {
+        const cancelled = await transaction.assessment.updateMany({
+          where: { id: assessment.id, status: "SCHEDULED" },
+          data: { status: "CANCELLED", cancelledAt: now },
+        });
+        return {
+          delivered: false,
+          skipped: true,
+          cancelled: cancelled.count === 1,
+        };
+      }
+      if (assessment.status !== "SCHEDULED" && assessment.status !== "FAILED") {
+        throw new AssessmentServiceError(
+          "NOT_DELIVERABLE",
+          "Assessment cannot be delivered in its current state.",
+        );
+      }
+      if (assessment.scheduledFor > now) {
+        throw new AssessmentServiceError(
+          "NOT_DUE",
+          "Assessment is not due for delivery.",
+        );
+      }
+      if (!appUrl) {
+        throw new AssessmentServiceError(
+          "APP_URL_UNAVAILABLE",
+          "Assessment delivery configuration is unavailable.",
+        );
+      }
 
-  let providerResult;
-  try {
-    providerResult = await emailSender({
-      assessmentUrl,
-      patientName:
-        `${assessment.patient.firstName} ${assessment.patient.lastName}`.trim(),
-      questionnaireTitle: assessment.questionnaire.title,
-      recipientEmail: assessment.recipientEmail,
-    });
-  } catch (error) {
-    const safeError = sanitizeAssessmentEmailError(error);
-    const updated = await prismaClient.$transaction(async (transaction) => {
-      const result = await transaction.assessment.update({
+      const rawToken = tokenFactory();
+      const tokenHash = hashAssessmentToken(rawToken);
+      const assessmentUrl = new URL(
+        `/assessment/${encodeURIComponent(rawToken)}`,
+        appUrl,
+      ).toString();
+      const attemptNumber = assessment.sendAttempts + 1;
+
+      let providerResult;
+      try {
+        providerResult = await emailSender({
+          assessmentUrl,
+          idempotencyKey: createDeliveryIdempotencyKey(
+            assessment.id,
+            attemptNumber,
+          ),
+          patientName:
+            `${assessment.patient.firstName} ${assessment.patient.lastName}`.trim(),
+          questionnaireTitle: assessment.questionnaire.title,
+          recipientEmail: assessment.recipientEmail,
+        });
+      } catch (error) {
+        const safeError = sanitizeAssessmentEmailError(error);
+        const updated = await transaction.assessment.update({
+          where: { id: assessment.id },
+          data: {
+            status: "FAILED",
+            tokenHash,
+            sentAt: null,
+            expiresAt: null,
+            sendAttempts: { increment: 1 },
+            lastSendError: safeError.message,
+            emailProviderMessageId: null,
+          },
+          select: ASSESSMENT_PUBLIC_SELECT,
+        });
+        await transaction.assessmentDeliveryAttempt.create({
+          data: {
+            assessmentId: assessment.id,
+            attemptNumber,
+            status: "FAILED",
+            provider: safeError.provider,
+            errorCode: safeError.code,
+            errorMessage: safeError.message,
+          },
+          select: { id: true },
+        });
+
+        return { assessment: toSafeAssessment(updated), delivered: false };
+      }
+
+      const sentAt = clock();
+      const expiresAt = new Date(sentAt.getTime() + ASSESSMENT_EXPIRY_MS);
+      const updated = await transaction.assessment.update({
         where: { id: assessment.id },
         data: {
-          status: "FAILED",
+          status: "SENT",
           tokenHash,
-          sentAt: null,
-          expiresAt: null,
+          sentAt,
+          expiresAt,
           sendAttempts: { increment: 1 },
-          lastSendError: safeError.message,
-          emailProviderMessageId: null,
+          lastSendError: null,
+          emailProviderMessageId: providerResult.messageId,
         },
         select: ASSESSMENT_PUBLIC_SELECT,
       });
@@ -270,50 +325,17 @@ export const deliverAssessment = async (
         data: {
           assessmentId: assessment.id,
           attemptNumber,
-          status: "FAILED",
-          provider: safeError.provider,
-          errorCode: safeError.code,
-          errorMessage: safeError.message,
+          status: "SUCCEEDED",
+          provider: providerResult.provider,
+          providerMessageId: providerResult.messageId,
         },
         select: { id: true },
       });
-      return result;
-    });
 
-    return { assessment: toSafeAssessment(updated), delivered: false };
-  }
-
-  const sentAt = clock();
-  const expiresAt = new Date(sentAt.getTime() + ASSESSMENT_EXPIRY_MS);
-  const updated = await prismaClient.$transaction(async (transaction) => {
-    const result = await transaction.assessment.update({
-      where: { id: assessment.id },
-      data: {
-        status: "SENT",
-        tokenHash,
-        sentAt,
-        expiresAt,
-        sendAttempts: { increment: 1 },
-        lastSendError: null,
-        emailProviderMessageId: providerResult.messageId,
-      },
-      select: ASSESSMENT_PUBLIC_SELECT,
-    });
-    await transaction.assessmentDeliveryAttempt.create({
-      data: {
-        assessmentId: assessment.id,
-        attemptNumber,
-        status: "SUCCEEDED",
-        provider: providerResult.provider,
-        providerMessageId: providerResult.messageId,
-      },
-      select: { id: true },
-    });
-    return result;
-  });
-
-  return { assessment: toSafeAssessment(updated), delivered: true };
-};
+      return { assessment: toSafeAssessment(updated), delivered: true };
+    },
+    { maxWait: 5_000, timeout: 20_000 },
+  );
 
 export const createAssessment = async (
   prismaClient,
@@ -380,8 +402,11 @@ export const processDueAssessments = async (
   return {
     processed: results.length,
     delivered: results.filter((result) => result.delivered).length,
-    failed: results.filter((result) => !result.delivered).length,
-    skipped,
+    failed: results.filter((result) => !result.delivered && !result.skipped)
+      .length,
+    skipped:
+      skipped + results.filter((result) => result.skipped === true).length,
+    cancelled: results.filter((result) => result.cancelled === true).length,
   };
 };
 
@@ -389,10 +414,23 @@ export const expireSentAssessments = async (prismaClient, now = new Date()) => {
   const result = await prismaClient.assessment.updateMany({
     where: {
       status: "SENT",
+      tokenConsumedAt: null,
+      completedAt: null,
       expiresAt: { lte: now },
     },
     data: { status: "EXPIRED" },
   });
 
   return result.count;
+};
+
+export const runAssessmentJob = async (prismaClient, options = {}) => {
+  const now = options.now ?? new Date();
+  const expired = await expireSentAssessments(prismaClient, now);
+  const delivery = await processDueAssessments(prismaClient, {
+    ...options,
+    now,
+  });
+
+  return { ...delivery, expired };
 };

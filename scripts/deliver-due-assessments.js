@@ -1,17 +1,12 @@
 import "dotenv/config";
 
 import { prisma } from "@/lib/prisma";
-import {
-  expireSentAssessments,
-  processDueAssessments,
-} from "@/server/assessments/service";
+import { runAssessmentJob } from "@/server/assessments/service";
 
 try {
-  const now = new Date();
-  const expired = await expireSentAssessments(prisma, now);
-  const result = await processDueAssessments(prisma, { now });
+  const result = await runAssessmentJob(prisma);
   console.log(
-    `Assessment delivery complete: ${result.processed} processed, ${result.delivered} delivered, ${result.failed} failed, ${result.skipped} skipped, ${expired} expired.`,
+    `Assessment delivery complete: ${result.processed} processed, ${result.delivered} delivered, ${result.failed} failed, ${result.skipped} skipped, ${result.cancelled} cancelled, ${result.expired} expired.`,
   );
 } catch (error) {
   console.error("Scheduled assessment delivery failed.", {

@@ -13,6 +13,7 @@ import {
   ASSESSMENT_EXPIRY_MS,
   createAssessment,
   processDueAssessments,
+  runAssessmentJob,
 } from "@/server/assessments/service";
 import { hashAssessmentToken } from "@/server/assessments/token";
 import { getActivePatientDetailByMrn } from "@/server/patients/service";
@@ -87,6 +88,7 @@ test("immediate success emails the raw token but persists and returns only its h
 
   assert.equal(result.delivered, true);
   assert.equal(result.assessment.status, "SENT");
+  assert.match(providerPayload.idempotencyKey, /^[a-f0-9]{64}$/);
   assert.equal(result.assessment.sentAt, baseTime.toISOString());
   assert.equal(
     result.assessment.expiresAt,
@@ -212,6 +214,88 @@ test("scheduled assessments remain queued and later use the shared delivery path
   });
   assert.equal(afterDue.delivered, 1);
   assert.equal(sendCount, 1);
+});
+
+test("concurrent and repeated jobs deliver a due assessment at most once and expire sent records", async () => {
+  const scheduledFor = new Date(baseTime.getTime() + 4 * 60 * 60 * 1000);
+  const created = await createAssessment(
+    prisma,
+    clinician.id,
+    patient.mrn,
+    { deliveryMode: "SCHEDULED", scheduledFor },
+    { now: baseTime },
+  );
+  const dueAssessment = await prisma.assessment.findFirstOrThrow({
+    where: {
+      patientId: patient.id,
+      status: "SCHEDULED",
+      scheduledFor,
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  const expiring = await prisma.assessment.create({
+    data: {
+      patientId: patient.id,
+      questionnaireId: (
+        await prisma.questionnaire.findFirstOrThrow({
+          where: { code: "dsma-8", isActive: true },
+          select: { id: true },
+        })
+      ).id,
+      createdById: clinician.id,
+      recipientEmail: patient.email,
+      scheduledFor: baseTime,
+      status: "SENT",
+      tokenHash: hashAssessmentToken(`expiry-${suffix}`),
+      sentAt: baseTime,
+      expiresAt: scheduledFor,
+    },
+  });
+  let sendCount = 0;
+  const emailSender = async () => {
+    sendCount += 1;
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    return { provider: "mock", messageId: `concurrent-${suffix}` };
+  };
+  const options = {
+    now: scheduledFor,
+    clock: () => scheduledFor,
+    appUrl: "https://app.example.test",
+    emailSender,
+  };
+
+  await Promise.all([
+    runAssessmentJob(prisma, options),
+    runAssessmentJob(prisma, options),
+  ]);
+  await runAssessmentJob(prisma, options);
+
+  assert.equal(sendCount, 1);
+  assert.equal(
+    (
+      await prisma.assessment.findUniqueOrThrow({
+        where: { id: expiring.id },
+        select: { status: true },
+      })
+    ).status,
+    "EXPIRED",
+  );
+  assert.equal(
+    await prisma.assessmentDeliveryAttempt.count({
+      where: { assessmentId: dueAssessment.id },
+    }),
+    1,
+  );
+  assert.equal(
+    (
+      await prisma.assessment.findUniqueOrThrow({
+        where: { id: dueAssessment.id },
+        select: { status: true },
+      })
+    ).status,
+    "SENT",
+  );
 });
 
 test("archived and unknown patients cannot receive assessments", async () => {

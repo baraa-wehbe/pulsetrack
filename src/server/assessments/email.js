@@ -28,6 +28,7 @@ const safeProviderMessageId = (value) =>
 
 export const sendAssessmentEmail = async ({
   assessmentUrl,
+  idempotencyKey,
   patientName,
   questionnaireTitle,
   recipientEmail,
@@ -42,6 +43,7 @@ export const sendAssessmentEmail = async ({
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify({
         from,
@@ -56,7 +58,7 @@ export const sendAssessmentEmail = async ({
           "This link expires seven days after delivery.",
         ].join("\n"),
       }),
-      signal,
+      signal: signal ?? AbortSignal.timeout(10_000),
     });
   } catch {
     throw new AssessmentEmailError(
