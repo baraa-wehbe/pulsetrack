@@ -186,6 +186,8 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  console.error(error);
+  console.error("Authentication verification failed.", {
+    name: error instanceof Error ? error.name : "UnknownError",
+  });
   process.exitCode = 1;
 });

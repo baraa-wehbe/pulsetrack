@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { patientMrnSchema } from "@/lib/patient-validation";
-
 export const PATIENT_DASHBOARD_METRICS = Object.freeze({
   fastingGlucose: "GLU-F",
   hba1c: "HBA1C",
@@ -10,7 +8,7 @@ export const PATIENT_DASHBOARD_METRICS = Object.freeze({
 
 export const patientDashboardQuerySchema = z
   .object({
-    patient: patientMrnSchema.optional(),
+    patient: z.uuid().optional(),
   })
   .strict();
 

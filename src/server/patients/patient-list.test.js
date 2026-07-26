@@ -175,16 +175,19 @@ test("pagination links preserve active list state without default noise", () => 
 });
 
 test("MRN detail links preserve only validated patient-list state", () => {
-  const detailHref = buildPatientDetailHref("PT-100", {
-    ...PATIENT_LIST_DEFAULTS,
-    search: "Leila",
-    origin: "FHIR",
-    page: 2,
-  });
+  const detailHref = buildPatientDetailHref(
+    "8700ba23-32c7-4d26-9497-35fcf7660f51",
+    {
+      ...PATIENT_LIST_DEFAULTS,
+      search: "Leila",
+      origin: "FHIR",
+      page: 2,
+    },
+  );
 
   assert.equal(
     detailHref,
-    "/patients/PT-100?returnTo=%2Fpatients%3Fsearch%3DLeila%26origin%3DFHIR%26page%3D2",
+    "/patients/8700ba23-32c7-4d26-9497-35fcf7660f51?returnTo=%2Fpatients%3Fsearch%3DLeila%26origin%3DFHIR%26page%3D2",
   );
   assert.equal(
     resolvePatientListReturnPath("/patients?search=Leila&origin=FHIR&page=2"),

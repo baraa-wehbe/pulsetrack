@@ -57,6 +57,7 @@ export default async function EditPatientPage({ params }) {
       </p>
       <PatientForm
         initialPatient={{
+          id: patient.id,
           mrn: patient.mrn,
           firstName: patient.firstName,
           lastName: patient.lastName,

@@ -72,6 +72,7 @@ export const getActivePatientForAssessment = async (
 
   return patient
     ? {
+        id: patient.id,
         mrn: patient.mrn,
         firstName: patient.firstName,
         lastName: patient.lastName,

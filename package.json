@@ -46,6 +46,8 @@
     "test:lab-report": "tsx --tsconfig jsconfig.json --test src/server/labs/lab-report.test.js",
     "test:patient-dashboard": "tsx --tsconfig jsconfig.json --test src/server/dashboards/patient-dashboard.test.js",
     "test:clinic-dashboard": "tsx --tsconfig jsconfig.json --test src/server/dashboards/clinic-dashboard.test.js",
+    "test:tier1:e2e": "tsx --tsconfig jsconfig.json --test src/server/tier1/tier1-flow.integration.test.js",
+    "test:tier1:security": "tsx --tsconfig jsconfig.json --test src/server/security/tier1-security.test.js",
     "test:public-assessment": "tsx --tsconfig jsconfig.json --test src/lib/questionnaire.test.js src/server/assessments/public-assessment.test.js",
     "test:public-assessment:integration": "tsx --tsconfig jsconfig.json --test src/server/assessments/public-assessment.integration.test.js",
     "test:public-assessment:browser": "tsx --tsconfig jsconfig.json scripts/verify-public-assessment.js"

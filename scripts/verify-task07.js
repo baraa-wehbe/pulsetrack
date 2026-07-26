@@ -139,8 +139,8 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  console.error(
-    error instanceof Error ? error.message : "Verification failed.",
-  );
+  console.error("Patient list verification failed.", {
+    name: error instanceof Error ? error.name : "UnknownError",
+  });
   process.exitCode = 1;
 });

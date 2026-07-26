@@ -60,6 +60,7 @@ const toSafeAssessment = (assessment) => {
 };
 
 export const toSafeActivePatientDetail = (patient) => ({
+  id: patient.id,
   mrn: patient.mrn,
   firstName: patient.firstName,
   lastName: patient.lastName,
@@ -106,6 +107,7 @@ export const PATIENT_LIST_SELECT = Object.freeze({
 });
 
 export const PATIENT_DETAIL_SELECT = Object.freeze({
+  id: true,
   mrn: true,
   firstName: true,
   lastName: true,

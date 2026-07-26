@@ -87,7 +87,7 @@ test("patient list has responsive cards and a semantic table", async () => {
 test("only MRN links to patient details and assessment actions have protected destinations", async () => {
   const source = await readSource("app/(private)/patients/page.js");
 
-  assert.match(source, /buildPatientDetailHref\(patient\.mrn, listQuery\)/);
+  assert.match(source, /buildPatientDetailHref\(patient\.id, listQuery\)/);
   assert.doesNotMatch(source, /href=\{`\/patients\/\$\{patient\.id\}`\}/);
   assert.match(source, /<MrnLink/);
   assert.doesNotMatch(source, /<h2[^>]*>\s*<Link/);

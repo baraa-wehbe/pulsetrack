@@ -3,8 +3,6 @@ import {
   PATIENT_DASHBOARD_METRICS,
   summarizeMetric,
 } from "@/lib/patient-dashboard";
-import { normalizePatientMrn } from "@/lib/patient-validation";
-
 const LAB_CODES = Object.freeze(Object.values(PATIENT_DASHBOARD_METRICS));
 
 const asNumber = (value) => (value === null ? null : Number(value));
@@ -20,6 +18,7 @@ export const listPatientDashboardOptions = async (prismaClient) => {
       { id: "asc" },
     ],
     select: {
+      id: true,
       mrn: true,
       firstName: true,
       lastName: true,
@@ -55,10 +54,10 @@ const toLabMetric = (results, code) => {
   };
 };
 
-export const getPatientDashboardData = async (prismaClient, mrn) => {
+export const getPatientDashboardData = async (prismaClient, patientId) => {
   const patient = await prismaClient.patient.findFirst({
     where: {
-      mrn: normalizePatientMrn(mrn),
+      id: patientId,
       archivedAt: null,
     },
     select: {
@@ -119,6 +118,7 @@ export const getPatientDashboardData = async (prismaClient, mrn) => {
 
   return {
     patient: {
+      id: patient.id,
       mrn: patient.mrn,
       firstName: patient.firstName,
       lastName: patient.lastName,

@@ -12,6 +12,7 @@ const readSource = (relativePath) =>
   readFile(new URL(`../../${relativePath}`, import.meta.url), "utf8");
 
 const rawPatient = {
+  id: "8700ba23-32c7-4d26-9497-35fcf7660f51",
   mrn: "PT-100",
   firstName: "Leila",
   lastName: "Haddad",
@@ -80,7 +81,6 @@ test("active patient detail uses normalized MRN and safe newest-first selection"
     "answers",
     "scoringSnapshot",
     "lastSendError",
-    "id",
   ]) {
     assert.equal(serialized.includes(sensitive), false);
   }
@@ -117,8 +117,8 @@ test("detail page handles 404s, demographics, history, empty, lab, and safe prop
     readSource("app/(private)/patients/[patientId]/error.js"),
   ]);
 
-  assert.match(page, /patientMrnRouteParamsSchema/);
-  assert.match(page, /getActivePatientDetailByMrn/);
+  assert.match(page, /patientIdentifierRouteParamsSchema/);
+  assert.match(page, /getActivePatientDetailByIdentifier/);
   assert.match(page, /notFound\(\)/);
   assert.match(page, /resolvePatientListReturnPath/);
   assert.match(page, /demographics-heading/);
@@ -128,7 +128,7 @@ test("detail page handles 404s, demographics, history, empty, lab, and safe prop
   assert.match(page, /dsmaScore/);
   assert.match(page, /riskLevel/);
   assert.match(page, /lab-summary-heading/);
-  assert.doesNotMatch(page, /patient\.id/);
+  assert.match(page, /patient\.id/);
   assert.doesNotMatch(page, /tokenHash|recipientEmail|scoringSnapshot|answers/);
   assert.doesNotMatch(serialization, /PATIENT_DETAIL_SELECT[\s\S]*tokenHash/);
   assert.match(loading, /role="status"/);

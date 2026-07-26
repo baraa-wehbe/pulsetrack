@@ -46,7 +46,7 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
     setPending(true);
     try {
       const response = await fetch(
-        `/api/private/patients/${encodeURIComponent(patient.mrn)}/assessments`,
+        `/api/private/patients/${patient.id}/assessments`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -69,9 +69,7 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
         : result.scheduled
           ? "scheduled"
           : "failed";
-      router.push(
-        `/patients/${encodeURIComponent(patient.mrn)}?assessment=${outcome}`,
-      );
+      router.push(`/patients/${patient.id}?assessment=${outcome}`);
       router.refresh();
     } catch {
       setFormError(messages.assessmentCreationError);
@@ -103,7 +101,7 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
           <p>{messages.patientEmailRequired}</p>
           <Link
             className="mt-2 inline-block font-semibold underline focus-visible:outline-2 focus-visible:outline-offset-2"
-            href={`/patients/${encodeURIComponent(patient.mrn)}/edit`}
+            href={`/patients/${patient.id}/edit`}
           >
             {messages.editPatient}
           </Link>
@@ -162,7 +160,7 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
         </button>
         <Link
           className="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          href={`/patients/${encodeURIComponent(patient.mrn)}`}
+          href={`/patients/${patient.id}`}
         >
           {messages.cancel}
         </Link>

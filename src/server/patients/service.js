@@ -157,10 +157,13 @@ export const getPatientById = async (prismaClient, patientId) => {
   return patient ? toSafePatient(patient) : null;
 };
 
-export const getActivePatientDetailByMrn = async (prismaClient, mrn) => {
+export const getActivePatientDetailByIdentifier = async (
+  prismaClient,
+  identifier,
+) => {
   const patient = await prismaClient.patient.findFirst({
     where: {
-      mrn: normalizePatientMrn(mrn),
+      ...patientIdentifierWhere(identifier),
       archivedAt: null,
     },
     select: PATIENT_DETAIL_SELECT,
@@ -181,6 +184,8 @@ const patientIdentifierWhere = (identifier) =>
         ],
       }
     : { mrn: normalizePatientMrn(identifier) };
+
+export const getActivePatientDetailByMrn = getActivePatientDetailByIdentifier;
 
 export const getPatientByIdentifier = async (prismaClient, identifier) => {
   const patient = await prismaClient.patient.findFirst({

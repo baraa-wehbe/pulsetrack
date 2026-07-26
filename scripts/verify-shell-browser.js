@@ -269,6 +269,8 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  console.error(error);
+  console.error("Application shell browser verification failed.", {
+    name: error instanceof Error ? error.name : "UnknownError",
+  });
   process.exitCode = 1;
 });

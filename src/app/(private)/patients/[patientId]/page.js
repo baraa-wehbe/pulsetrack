@@ -10,9 +10,9 @@ import {
   getRiskPresentation,
 } from "@/lib/assessment-presentation";
 import { resolvePatientListReturnPath } from "@/lib/patient-list";
-import { patientMrnRouteParamsSchema } from "@/lib/patient-validation";
+import { patientIdentifierRouteParamsSchema } from "@/lib/patient-validation";
 import { prisma } from "@/lib/prisma";
-import { getActivePatientDetailByMrn } from "@/server/patients/service";
+import { getActivePatientDetailByIdentifier } from "@/server/patients/service";
 import { getRequestPreferences } from "@/server/preferences/current";
 
 export const metadata = {
@@ -39,7 +39,9 @@ const DemographicField = ({ label, ltr = false, value }) => (
 );
 
 export default async function PatientDetailsPage({ params, searchParams }) {
-  const parsedParams = patientMrnRouteParamsSchema.safeParse(await params);
+  const parsedParams = patientIdentifierRouteParamsSchema.safeParse(
+    await params,
+  );
 
   if (!parsedParams.success) {
     notFound();
@@ -47,7 +49,7 @@ export default async function PatientDetailsPage({ params, searchParams }) {
 
   const [{ language }, patient] = await Promise.all([
     getRequestPreferences(),
-    getActivePatientDetailByMrn(prisma, parsedParams.data.patientId),
+    getActivePatientDetailByIdentifier(prisma, parsedParams.data.patientId),
   ]);
 
   if (!patient) {
@@ -97,25 +99,25 @@ export default async function PatientDetailsPage({ params, searchParams }) {
           <div className="flex flex-wrap gap-3">
             <Link
               className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              href={`/patients/${encodeURIComponent(patient.mrn)}/send`}
+              href={`/patients/${patient.id}/send`}
             >
               {messages.send}
             </Link>
             <Link
               className="rounded-lg border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
-              href={`/patients/${encodeURIComponent(patient.mrn)}/schedule`}
+              href={`/patients/${patient.id}/schedule`}
             >
               {messages.schedule}
             </Link>
             <Link
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-              href={`/patients/${encodeURIComponent(patient.mrn)}/edit`}
+              href={`/patients/${patient.id}/edit`}
             >
               {messages.editPatient}
             </Link>
             <ArchivePatientButton
               messages={messages}
-              patientIdentifier={patient.mrn}
+              patientIdentifier={patient.id}
             />
           </div>
         </div>

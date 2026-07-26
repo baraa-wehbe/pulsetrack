@@ -192,9 +192,9 @@ export default async function PatientDashboardPage({ searchParams }) {
     searchParams,
   ]);
   const messages = getTranslations(language);
-  const { patient: selectedMrn } = parsePatientDashboardQuery(query);
-  const dashboard = selectedMrn
-    ? await getPatientDashboardData(prisma, selectedMrn)
+  const { patient: selectedPatientId } = parsePatientDashboardQuery(query);
+  const dashboard = selectedPatientId
+    ? await getPatientDashboardData(prisma, selectedPatientId)
     : null;
   const hasAnyData = dashboard
     ? Object.values(dashboard.metrics).some(
@@ -239,7 +239,7 @@ export default async function PatientDashboardPage({ searchParams }) {
         <div className="mt-2 flex flex-col gap-3 sm:flex-row">
           <select
             className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-            defaultValue={dashboard?.patient.mrn ?? ""}
+            defaultValue={dashboard?.patient.id ?? ""}
             id="dashboard-patient"
             name="patient"
             required
@@ -248,7 +248,7 @@ export default async function PatientDashboardPage({ searchParams }) {
               {messages.chooseActivePatient}
             </option>
             {options.map((patient) => (
-              <option key={patient.mrn} value={patient.mrn}>
+              <option key={patient.id} value={patient.id}>
                 {patient.lastName}, {patient.firstName} ({patient.mrn})
               </option>
             ))}
@@ -277,7 +277,7 @@ export default async function PatientDashboardPage({ searchParams }) {
             {messages.newPatient}
           </Link>
         </div>
-      ) : selectedMrn && !dashboard ? (
+      ) : selectedPatientId && !dashboard ? (
         <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 dark:border-amber-900 dark:bg-amber-950">
           <h2 className="font-bold">
             {messages.dashboardPatientUnavailableTitle}

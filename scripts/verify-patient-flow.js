@@ -149,7 +149,7 @@ const main = async () => {
     );
 
     const invalidSchedule = await authenticatedRequest(
-      `/api/private/patients/${patient.mrn}/assessments`,
+      `/api/private/patients/${patient.id}/assessments`,
       {
         method: "POST",
         ...jsonBody({
@@ -161,7 +161,7 @@ const main = async () => {
     assert.equal(invalidSchedule.status, 400);
 
     const scheduled = await authenticatedRequest(
-      `/api/private/patients/${patient.mrn}/assessments`,
+      `/api/private/patients/${patient.id}/assessments`,
       {
         method: "POST",
         ...jsonBody({
@@ -430,6 +430,8 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  console.error(error);
+  console.error("Patient flow verification failed.", {
+    name: error instanceof Error ? error.name : "UnknownError",
+  });
   process.exitCode = 1;
 });

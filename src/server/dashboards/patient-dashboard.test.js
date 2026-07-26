@@ -41,7 +41,14 @@ test("dashboard patient options include only active patients in deterministic or
     patient: {
       findMany: async (args) => {
         query = args;
-        return [{ mrn: "PT-1", firstName: "Maya", lastName: "Ali" }];
+        return [
+          {
+            id: "8700ba23-32c7-4d26-9497-35fcf7660f51",
+            mrn: "PT-1",
+            firstName: "Maya",
+            lastName: "Ali",
+          },
+        ];
       },
     },
   };
@@ -52,6 +59,7 @@ test("dashboard patient options include only active patients in deterministic or
   assert.deepEqual(query.orderBy.at(-1), { id: "asc" });
   assert.deepEqual(Object.keys(query.select).sort(), [
     "firstName",
+    "id",
     "lastName",
     "mrn",
   ]);
@@ -65,6 +73,7 @@ test("dashboard query scopes to normalized active MRN and selects only supported
       findFirst: async (args) => {
         query = args;
         return {
+          id: "8700ba23-32c7-4d26-9497-35fcf7660f51",
           mrn: "PT-100",
           firstName: "Leila",
           lastName: "Haddad",
@@ -75,9 +84,15 @@ test("dashboard query scopes to normalized active MRN and selects only supported
     },
   };
 
-  const result = await getPatientDashboardData(prisma, " pt-100 ");
+  const result = await getPatientDashboardData(
+    prisma,
+    "8700ba23-32c7-4d26-9497-35fcf7660f51",
+  );
 
-  assert.deepEqual(query.where, { mrn: "PT-100", archivedAt: null });
+  assert.deepEqual(query.where, {
+    id: "8700ba23-32c7-4d26-9497-35fcf7660f51",
+    archivedAt: null,
+  });
   assert.deepEqual(query.select.labResults.where, {
     testCode: { in: ["GLU-F", "HBA1C", "SBP"] },
   });
@@ -86,13 +101,14 @@ test("dashboard query scopes to normalized active MRN and selects only supported
     response: { isNot: null },
   });
   assert.equal(result.patient.mrn, "PT-100");
-  assert.equal(JSON.stringify(result).includes("id"), false);
+  assert.equal(result.patient.id, "8700ba23-32c7-4d26-9497-35fcf7660f51");
 });
 
 test("lab trends are chronological with deterministic same-date ordering and summaries", async () => {
   const prisma = {
     patient: {
       findFirst: async () => ({
+        id: "8700ba23-32c7-4d26-9497-35fcf7660f51",
         mrn: "PT-100",
         firstName: "Leila",
         lastName: "Haddad",
@@ -115,7 +131,10 @@ test("lab trends are chronological with deterministic same-date ordering and sum
     },
   };
 
-  const { metrics } = await getPatientDashboardData(prisma, "PT-100");
+  const { metrics } = await getPatientDashboardData(
+    prisma,
+    "8700ba23-32c7-4d26-9497-35fcf7660f51",
+  );
 
   assert.deepEqual(
     metrics.fastingGlucose.points.map((point) => point.value),
@@ -133,6 +152,7 @@ test("completed questionnaire points retain stored risk and have no invented ref
   const prisma = {
     patient: {
       findFirst: async () => ({
+        id: "8700ba23-32c7-4d26-9497-35fcf7660f51",
         mrn: "PT-100",
         firstName: "Leila",
         lastName: "Haddad",
@@ -159,7 +179,10 @@ test("completed questionnaire points retain stored risk and have no invented ref
     },
   };
 
-  const { metrics } = await getPatientDashboardData(prisma, "PT-100");
+  const { metrics } = await getPatientDashboardData(
+    prisma,
+    "8700ba23-32c7-4d26-9497-35fcf7660f51",
+  );
 
   assert.deepEqual(
     metrics.questionnaire.points.map(({ value, riskBand }) => ({
@@ -176,9 +199,14 @@ test("completed questionnaire points retain stored risk and have no invented ref
 });
 
 test("query validation, point ordering, and range boundaries are deterministic", () => {
-  assert.deepEqual(parsePatientDashboardQuery({ patient: " pt-7 " }), {
-    patient: "PT-7",
-  });
+  assert.deepEqual(
+    parsePatientDashboardQuery({
+      patient: "8700ba23-32c7-4d26-9497-35fcf7660f51",
+    }),
+    {
+      patient: "8700ba23-32c7-4d26-9497-35fcf7660f51",
+    },
+  );
   assert.deepEqual(parsePatientDashboardQuery({ patient: "../secret" }), {});
   assert.deepEqual(parsePatientDashboardQuery({ unknown: "value" }), {});
   assert.deepEqual(

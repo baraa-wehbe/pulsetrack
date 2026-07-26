@@ -59,7 +59,7 @@ const MrnLink = ({ listQuery, messages, patient }) => (
   <Link
     aria-label={`${messages.viewPatientMrn} ${patient.mrn}`}
     className="font-semibold text-teal-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
-    href={buildPatientDetailHref(patient.mrn, listQuery)}
+    href={buildPatientDetailHref(patient.id, listQuery)}
   >
     <bdi dir="ltr">{patient.mrn}</bdi>
   </Link>

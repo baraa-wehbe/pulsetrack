@@ -146,13 +146,14 @@ const main = async () => {
 
     await page.locator("#dateOfBirth").fill(getLocalDateOnly());
     await page.getByRole("button", { name: "حفظ المريض" }).click();
-    await page.waitForURL(`${BASE_URL}/patients/${normalizedMrn}`);
+    await page.waitForURL(new RegExp(`${BASE_URL}/patients/[0-9a-f-]{36}$`));
     const storedPatient = await prisma.patient.findUnique({
       where: { mrn: normalizedMrn },
       select: { id: true },
     });
     assert.ok(storedPatient);
-    const patientId = storedPatient.id;
+    const patientId = new URL(page.url()).pathname.split("/").at(-1);
+    assert.equal(patientId, storedPatient.id);
     patientIds.push(patientId);
 
     assert.equal(await page.getByText(normalizedMrn).first().isVisible(), true);
@@ -235,7 +236,7 @@ const main = async () => {
     assert.match(await assessmentItems.nth(1).textContent(), /15\s*\/\s*24/);
     assert.match(await assessmentItems.nth(1).textContent(), /خطورة مرتفعة/);
     const detailHtml = await page.content();
-    assert.equal(detailHtml.includes(patientId), false);
+    assert.equal(new URL(page.url()).pathname.includes(normalizedMrn), false);
     assert.equal(detailHtml.includes(sensitiveTokenHash), false);
     assert.equal(detailHtml.includes("detail-browser@example.test"), false);
 
@@ -268,7 +269,7 @@ const main = async () => {
       `/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=NOT_SYNCED&pageSize=10`,
     );
     assert.match(page.url(), /search=/);
-    const detailSelector = `a[href^="/patients/${normalizedMrn}?returnTo="]`;
+    const detailSelector = `a[href^="/patients/${patientId}?returnTo="]`;
     assert.equal(await page.locator(detailSelector).count(), 2);
     for (const detailLink of await page.locator(detailSelector).all()) {
       assert.equal((await detailLink.textContent()).trim(), normalizedMrn);
@@ -291,7 +292,7 @@ const main = async () => {
       0,
     );
     await page.locator(detailSelector).filter({ visible: true }).click();
-    await page.waitForURL(new RegExp(`/patients/${normalizedMrn}\\?returnTo=`));
+    await page.waitForURL(new RegExp(`/patients/${patientId}\\?returnTo=`));
     const backLink = page.getByRole("link", { name: "العودة إلى المرضى" });
     await backLink.waitFor({ state: "visible" });
     const backHref = await backLink.getAttribute("href");
@@ -347,13 +348,13 @@ const main = async () => {
     await page.goto("/patients");
     await assertNoSeriousAccessibilityViolations(page);
 
-    await page.goto(`/patients/${normalizedMrn}`);
+    await page.goto(`/patients/${patientId}`);
     await page.getByRole("link", { name: "تعديل المريض" }).click();
-    await page.waitForURL(`${BASE_URL}/patients/${normalizedMrn}/edit`);
+    await page.waitForURL(`${BASE_URL}/patients/${patientId}/edit`);
     await page.locator("#firstName").fill("Updated Browser");
     await page.locator("#email").fill(" Updated.Browser@Example.TEST ");
     await page.getByRole("button", { name: "حفظ المريض" }).click();
-    await page.waitForURL(`${BASE_URL}/patients/${normalizedMrn}`);
+    await page.waitForURL(`${BASE_URL}/patients/${patientId}`);
     await page
       .getByRole("heading", { name: /Updated Browser/ })
       .waitFor({ state: "visible" });
@@ -391,7 +392,7 @@ const main = async () => {
       true,
     );
 
-    await page.goto(`/patients/${normalizedMrn}`);
+    await page.goto(`/patients/${patientId}`);
     const archiveTrigger = page.getByRole("button", {
       name: "أرشفة المريض",
       exact: true,
@@ -415,7 +416,7 @@ const main = async () => {
       await page.getByText("Updated Browser", { exact: false }).count(),
       0,
     );
-    const archivedDetail = await page.goto(`/patients/${normalizedMrn}`);
+    const archivedDetail = await page.goto(`/patients/${patientId}`);
     assert.ok([200, 404].includes(archivedDetail.status()));
     assert.ok(
       (await page.locator('meta[name="robots"][content="noindex"]').count()) >=
@@ -465,6 +466,8 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  console.error(error);
+  console.error("Patient browser verification failed.", {
+    name: error instanceof Error ? error.name : "UnknownError",
+  });
   process.exitCode = 1;
 });

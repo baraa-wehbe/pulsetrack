@@ -90,11 +90,11 @@ export const buildPatientListHref = (query, overrides = {}) => {
   return serialized ? `/patients?${serialized}` : "/patients";
 };
 
-export const buildPatientDetailHref = (mrn, query) => {
+export const buildPatientDetailHref = (patientId, query) => {
   const returnTo = buildPatientListHref(query);
   const parameters = new URLSearchParams({ returnTo });
 
-  return `/patients/${encodeURIComponent(mrn)}?${parameters}`;
+  return `/patients/${encodeURIComponent(patientId)}?${parameters}`;
 };
 
 export const resolvePatientListReturnPath = (value) => {

@@ -1,15 +1,13 @@
 # PulseTrack
 
-PulseTrack will be a remote patient monitoring platform for clinicians and
-patients.
+PulseTrack is a clinician-managed remote patient monitoring application.
 
 ## Current status
 
-This repository contains the application and database foundation, immutable
-reference-data seeding, clinician-only credentials authentication, the
-authenticated application shell, and clinician-managed patient records.
-Questionnaire delivery, lab importing, dashboard analytics, FHIR, and AI
-features are not implemented.
+Tier 1 includes clinician authentication, patient management, DSMA-8 delivery
+and public completion, partial CSV lab importing with validation reports, and
+patient and clinic dashboards. Patients do not have application accounts.
+FHIR synchronization and AI features are not implemented.
 
 ## Requirements
 
@@ -17,27 +15,30 @@ features are not implemented.
 - npm
 - Docker Desktop or another Docker installation with Compose
 
-## Installation
+## Under-ten-minute local setup
 
-```bash
+From PowerShell in the repository root, run this copy-pasteable sequence. The
+migration deploy command is intentionally non-interactive.
+
+```powershell
 npm install
+Copy-Item .env.example .env
+npm run db:up
+npm run db:deploy
+npm run prisma:generate
+npm run db:seed
+npm run clinician:create -- --email developer@example.local --password "REPLACE_WITH_A_UNIQUE_LOCAL_PASSWORD" --name "Development Clinician"
+npm run dev
 ```
 
-Copy the example environment file to the ignored `.env` file and replace its
-safe placeholders when needed:
+Open `http://localhost:3000` and sign in with the local clinician you created.
+Use a unique development password and do not commit it. On macOS or Linux,
+replace `Copy-Item .env.example .env` with `cp .env.example .env`.
 
-```bash
-cp .env.example .env
-```
-
-The application requires:
-
-- `DATABASE_URL`: a valid database URL
-- `AUTH_SECRET`: a secret containing at least 32 characters
-- `NEXT_PUBLIC_APP_URL`: the public application URL
-
-Only `NEXT_PUBLIC_APP_URL` is intended for browser use. Never commit real
-environment files or credentials.
+The example environment is immediately usable with the Compose database. Before
+using email delivery or any non-local deployment, replace `AUTH_SECRET`,
+`SCHEDULER_SECRET`, `RESEND_API_KEY`, and `ASSESSMENT_EMAIL_FROM`. Only
+`NEXT_PUBLIC_APP_URL` may be exposed to browser bundles.
 
 ## Local PostgreSQL
 
@@ -179,16 +180,15 @@ then patient ID. Source, ownership, and sync badges display the stored Prisma
 enum values without live FHIR calls. Send and Schedule lead to authenticated
 assessment delivery workflows.
 
-Patient MRNs link to active-only detail routes at `/patients/[mrn]`. The detail
-page shows demographics, safe FHIR state badges, and assessment history ordered
+Patient MRNs link to active-only detail routes at `/patients/[patientId]`,
+where `patientId` is an opaque UUID rather than PHI. The detail page shows
+demographics, safe FHIR state badges, and assessment history ordered
 by creation time newest first. Completed DSMA-8 entries display the stored total
 score and risk band; the score maximum comes from the immutable questionnaire
 definition. The route never selects assessment tokens, recipient addresses,
 answers, scoring snapshots, provider errors, or internal assessment IDs.
 Delivery failure is exposed only as a safe derived state. Archived and unknown
-MRNs use the protected localized not-found state. Lab
-summary cards remain explicit placeholders until lab-result presentation is
-implemented.
+identifiers use the protected localized not-found state.
 
 ### Assessment delivery
 
@@ -213,6 +213,14 @@ written to logs or audit metadata. Confirmed sends set `sent_at` and an expiry
 exactly seven days later. Every success or failure creates a delivery-attempt
 row containing only controlled provider metadata and sanitized errors.
 
+Automated assessment tests always inject a mocked email sender and never contact
+Resend:
+
+```powershell
+npm run test:assessments:integration
+npm run test:tier1:e2e
+```
+
 The emailed `/assessment/[token]` route exchanges a valid raw token
 server-side for a short-lived signed `HttpOnly` access cookie and removes the
 raw token from the browser URL. The public `/assessment` page renders all eight
@@ -235,7 +243,7 @@ inserted even when other rows fail. The database identity of patient, collection
 date, and test code prevents duplicate results across retries and corrected
 re-uploads. Raw CSV files are not retained; only safe filename metadata, a
 SHA-256 digest, normalized row results, and stable validation codes are stored.
-Downstream analytics remain intentionally deferred.
+FHIR synchronization remains intentionally deferred.
 
 Each upload-history filename links to the clinician-scoped validation detail at
 `/lab-uploads/[importId]`. The detail page presents every stored source row in
@@ -243,6 +251,26 @@ CSV order and supports URL-backed `accepted`, `rejected`, and `duplicate`
 filters. Its protected report endpoint returns a deterministic CSV containing
 one summary record followed by one record per source row, including normalized
 values, stable codes, fields, and localized readable messages.
+
+### Dashboards
+
+`/dashboard/patient` uses an opaque patient UUID in URL state and charts
+fasting glucose, HbA1c, optional systolic blood pressure, and completed DSMA-8
+scores. `/dashboard/clinic` aggregates active patients, assessment outcomes,
+latest patient risk, and clinician-scoped lab-import quality over a validated
+date range.
+
+## Scheduled assessment execution
+
+Run due delivery and expiry processing locally with:
+
+```powershell
+npm run assessments:deliver-due
+```
+
+External schedulers can call `POST /api/scheduled/assessments` with
+`Authorization: Bearer <SCHEDULER_SECRET>`. Never place the scheduler secret in
+a URL, browser script, or committed file.
 
 ## Commands
 
@@ -273,6 +301,10 @@ npm run test:lab-report # Run import-detail and validation-report tests
 npm run test:public-assessment # Run public form and scoring unit tests
 npm run test:public-assessment:integration # Run single-use PostgreSQL tests
 npm run test:patients:task08 # Run patient-detail and patient-list browser checks
+npm run test:patient-dashboard # Run patient-dashboard tests
+npm run test:clinic-dashboard # Run clinic-dashboard tests
+npm run test:tier1:security # Run the Tier 1 security audit
+npm run test:tier1:e2e # Run the consolidated mocked-email Tier 1 flow
 ```
 
 ## Source structure
