@@ -23,6 +23,10 @@ export const toSafePatientListItem = (patient) => ({
   sex: patient.sex,
   email: patient.email,
   phone: patient.phone,
+  origin: patient.origin,
+  fhirOwnership: patient.fhirOwnership,
+  fhirSyncStatus: patient.fhirSyncStatus,
+  fhirLastSyncedAt: patient.fhirLastSyncedAt?.toISOString() ?? null,
 });
 
 export const PATIENT_SAFE_SELECT = Object.freeze({
@@ -48,4 +52,8 @@ export const PATIENT_LIST_SELECT = Object.freeze({
   sex: true,
   email: true,
   phone: true,
+  origin: true,
+  fhirOwnership: true,
+  fhirSyncStatus: true,
+  fhirLastSyncedAt: true,
 });

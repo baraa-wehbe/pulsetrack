@@ -5,6 +5,10 @@ import {
   toSafePatient,
   toSafePatientListItem,
 } from "@/server/patients/serialization";
+import {
+  PATIENT_LIST_ALL,
+  PATIENT_LIST_DEFAULTS,
+} from "@/lib/patient-validation";
 
 export const PATIENT_AUDIT_ACTIONS = Object.freeze({
   create: "PATIENT_CREATED",
@@ -64,19 +68,81 @@ const auditData = ({ action, actorId, patientId, metadata }) => ({
   metadata,
 });
 
-export const listActivePatients = async (prismaClient) => {
-  const patients = await prismaClient.patient.findMany({
-    where: { archivedAt: null },
-    orderBy: [
-      { lastName: "asc" },
-      { firstName: "asc" },
-      { mrn: "asc" },
-      { id: "asc" },
-    ],
-    select: PATIENT_LIST_SELECT,
-  });
+export const PATIENT_LIST_ORDER = Object.freeze([
+  { lastName: "asc" },
+  { firstName: "asc" },
+  { mrn: "asc" },
+  { id: "asc" },
+]);
 
-  return patients.map(toSafePatientListItem);
+export const buildActivePatientWhere = ({
+  search,
+  origin,
+  ownership,
+  syncStatus,
+}) => {
+  const filters = [{ archivedAt: null }];
+  const searchTokens = search.split(/\s+/).filter(Boolean);
+
+  for (const token of searchTokens) {
+    filters.push({
+      OR: [
+        { mrn: { contains: token.toUpperCase() } },
+        { firstName: { contains: token, mode: "insensitive" } },
+        { lastName: { contains: token, mode: "insensitive" } },
+      ],
+    });
+  }
+
+  if (origin !== PATIENT_LIST_ALL) filters.push({ origin });
+  if (ownership !== PATIENT_LIST_ALL) {
+    filters.push({ fhirOwnership: ownership });
+  }
+  if (syncStatus !== PATIENT_LIST_ALL) {
+    filters.push({ fhirSyncStatus: syncStatus });
+  }
+
+  return filters.length === 1 ? filters[0] : { AND: filters };
+};
+
+export const listActivePatients = async (
+  prismaClient,
+  query = PATIENT_LIST_DEFAULTS,
+) => {
+  const where = buildActivePatientWhere(query);
+
+  return prismaClient.$transaction(
+    async (transaction) => {
+      const [totalCount, activePatientCount] = await Promise.all([
+        transaction.patient.count({ where }),
+        transaction.patient.count({ where: { archivedAt: null } }),
+      ]);
+      const totalPages = Math.max(1, Math.ceil(totalCount / query.pageSize));
+      const page = Math.min(query.page, totalPages);
+      const patients = await transaction.patient.findMany({
+        where,
+        orderBy: PATIENT_LIST_ORDER,
+        skip: (page - 1) * query.pageSize,
+        take: query.pageSize,
+        select: PATIENT_LIST_SELECT,
+      });
+
+      return {
+        patients: patients.map(toSafePatientListItem),
+        activePatientCount,
+        query: { ...query, page },
+        pagination: {
+          page,
+          pageSize: query.pageSize,
+          totalCount,
+          totalPages,
+          hasPreviousPage: page > 1,
+          hasNextPage: page < totalPages,
+        },
+      };
+    },
+    { isolationLevel: "RepeatableRead" },
+  );
 };
 
 export const getPatientById = async (prismaClient, patientId) => {

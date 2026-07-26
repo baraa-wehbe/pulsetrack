@@ -174,11 +174,10 @@ const main = async () => {
     );
     await page.keyboard.press("Escape");
     assert.equal(await mobileDialog.count(), 0);
-    assert.equal(
-      await mobileTrigger.evaluate(
-        (element) => element === document.activeElement,
-      ),
-      true,
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute("aria-label") ===
+        "Open navigation",
     );
 
     await mobileTrigger.press("Space");

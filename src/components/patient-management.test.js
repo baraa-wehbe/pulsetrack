@@ -5,10 +5,15 @@ import test from "node:test";
 const readSource = (relativePath) =>
   readFile(new URL(`../${relativePath}`, import.meta.url), "utf8");
 
-test("patient list performs an active-only server query with stable ordering", async () => {
+test("patient list performs active-only server filtering with stable ordering", async () => {
   const source = await readSource("server/patients/service.js");
 
-  assert.match(source, /where: \{ archivedAt: null \}/);
+  assert.match(source, /filters = \[\{ archivedAt: null \}\]/);
+  assert.match(source, /mode: "insensitive"/);
+  assert.match(source, /fhirOwnership/);
+  assert.match(source, /fhirSyncStatus/);
+  assert.match(source, /skip:/);
+  assert.match(source, /take: query\.pageSize/);
   assert.match(source, /\{ lastName: "asc" \}/);
   assert.match(source, /\{ firstName: "asc" \}/);
   assert.match(source, /\{ mrn: "asc" \}/);
@@ -67,11 +72,71 @@ test("archive confirmation uses an accessible dialog and soft-delete endpoint", 
 test("patient list has responsive cards and a semantic table", async () => {
   const source = await readSource("app/(private)/patients/page.js");
 
-  assert.match(source, /md:hidden/);
+  assert.match(source, /xl:hidden/);
   assert.match(source, /<table/);
   assert.match(source, /<caption/);
   assert.match(source, /scope="col"/);
   assert.match(source, /scope="row"/);
+  assert.match(source, /PatientBadge/);
+  assert.match(source, /Pagination/);
+  assert.match(source, /method="get"/);
+  assert.match(source, /name="search"/);
+  assert.match(source, /name=\{name\}/);
+});
+
+test("only MRN links to patient details and future actions have protected destinations", async () => {
+  const source = await readSource("app/(private)/patients/page.js");
+  const directDetailLinks =
+    source.match(/href=\{`\/patients\/\$\{patient\.id\}`\}/g) ?? [];
+
+  assert.equal(directDetailLinks.length, 1);
+  assert.match(source, /<MrnLink/);
+  assert.doesNotMatch(source, /<h2[^>]*>\s*<Link/);
+  assert.match(source, /\/send`/);
+  assert.match(source, /\/schedule`/);
+  assert.match(source, /sendQuestionnaireTo/);
+  assert.match(source, /scheduleQuestionnaireFor/);
+});
+
+test("patient list loading, empty, filtered-empty, and error states are intentional", async () => {
+  const [page, loading, error] = await Promise.all([
+    readSource("app/(private)/patients/page.js"),
+    readSource("app/(private)/patients/loading.js"),
+    readSource("app/(private)/patients/error.js"),
+  ]);
+
+  assert.match(page, /noMatchingPatientsTitle/);
+  assert.match(page, /noPatientsTitle/);
+  assert.match(loading, /role="status"/);
+  assert.match(loading, /aria-hidden="true"/);
+  assert.match(error, /role="alert"/);
+  assert.match(error, /onClick=\{reset\}/);
+  assert.doesNotMatch(error, /error\.message/);
+});
+
+test("FHIR badge mappings and list labels are centralized in English and Arabic", async () => {
+  const [mappings, translations] = await Promise.all([
+    readSource("lib/patient-list.js"),
+    readSource("i18n/translations.js"),
+  ]);
+
+  for (const value of [
+    "LOCAL",
+    "FHIR",
+    "NONE",
+    "CANDIDATE_OWNED",
+    "EXTERNAL_READ_ONLY",
+    "NOT_SYNCED",
+    "PENDING",
+    "SYNCED",
+    "FAILED",
+  ]) {
+    assert.match(mappings, new RegExp(`${value}:`));
+  }
+  assert.match(translations, /searchPatients: "Search patients"/);
+  assert.match(translations, /searchPatients: "البحث عن المرضى"/);
+  assert.match(translations, /noMatchingPatientsTitle:/);
+  assert.match(translations, /workflowUnavailable:/);
 });
 
 test("English and Arabic patient UI translations are centralized", async () => {
@@ -89,6 +154,8 @@ test("no patient authentication UI or positive tab index is introduced", async (
     readSource("components/archive-patient-button.js"),
     readSource("app/(private)/patients/page.js"),
     readSource("app/(private)/patients/[patientId]/page.js"),
+    readSource("app/(private)/patients/[patientId]/send/page.js"),
+    readSource("app/(private)/patients/[patientId]/schedule/page.js"),
   ]);
   const source = files.join("\n");
 

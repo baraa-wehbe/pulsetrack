@@ -169,6 +169,16 @@ mutations write clinician-attributed entries to the existing `audit_logs` table
 inside the same Prisma transaction. No patient accounts, passwords, sessions,
 or login routes exist.
 
+The patient list uses URL parameters for server-side search, FHIR-state
+filters, and pagination. Supported parameters are `search`, `origin`,
+`ownership`, `syncStatus`, `page`, and `pageSize`; defaults are an empty search,
+all enum states, page `1`, and page size `10`. Page sizes are limited to `10`,
+`25`, or `50`. Multi-word search requires every token to match MRN, first name,
+or last name in PostgreSQL. Results are ordered by last name, first name, MRN,
+then patient ID. Source, ownership, and sync badges display the stored Prisma
+enum values without live FHIR calls. Send and Schedule lead to protected
+informational placeholders and do not create questionnaire data.
+
 ## Commands
 
 ```bash
@@ -187,6 +197,7 @@ npm test             # Run the unit test suite
 npm run test:auth    # Run clinician authentication unit tests
 npm run test:shell   # Run shell, navigation, language, RTL, and theme tests
 npm run test:patients # Run patient validation and UI architecture tests
+npm run test:patients:task07 # Run patient-list HTTP, browser, RTL, and axe checks
 ```
 
 ## Source structure

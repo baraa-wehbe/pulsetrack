@@ -7,6 +7,29 @@ export const PATIENT_SEX_VALUES = Object.freeze([
   "UNKNOWN",
 ]);
 
+export const PATIENT_ORIGIN_VALUES = Object.freeze(["LOCAL", "FHIR"]);
+export const PATIENT_OWNERSHIP_VALUES = Object.freeze([
+  "NONE",
+  "CANDIDATE_OWNED",
+  "EXTERNAL_READ_ONLY",
+]);
+export const PATIENT_SYNC_STATUS_VALUES = Object.freeze([
+  "NOT_SYNCED",
+  "PENDING",
+  "SYNCED",
+  "FAILED",
+]);
+export const PATIENT_LIST_ALL = "all";
+export const PATIENT_PAGE_SIZE_VALUES = Object.freeze([10, 25, 50]);
+export const PATIENT_LIST_DEFAULTS = Object.freeze({
+  search: "",
+  origin: PATIENT_LIST_ALL,
+  ownership: PATIENT_LIST_ALL,
+  syncStatus: PATIENT_LIST_ALL,
+  page: 1,
+  pageSize: 10,
+});
+
 export const normalizePatientMrn = (value) => value.trim().toUpperCase();
 export const normalizePatientEmail = (value) => value.trim().toLowerCase();
 
@@ -122,7 +145,35 @@ export const patientRouteParamsSchema = z
   })
   .strict();
 
-export const patientListQuerySchema = z.object({}).strict();
+const optionalFilter = (values) =>
+  z.enum([PATIENT_LIST_ALL, ...values]).default(PATIENT_LIST_ALL);
+
+const positiveIntegerQuery = z.string().regex(/^[1-9]\d*$/, "invalid_page");
+
+export const patientListQuerySchema = z
+  .object({
+    search: z.string().trim().max(100, "too_long").default(""),
+    origin: optionalFilter(PATIENT_ORIGIN_VALUES),
+    ownership: optionalFilter(PATIENT_OWNERSHIP_VALUES),
+    syncStatus: optionalFilter(PATIENT_SYNC_STATUS_VALUES),
+    page: positiveIntegerQuery.default("1").transform(Number),
+    pageSize: z
+      .enum(PATIENT_PAGE_SIZE_VALUES.map(String))
+      .default(String(PATIENT_LIST_DEFAULTS.pageSize))
+      .transform(Number),
+  })
+  .strict();
+
+export const parsePatientListPageQuery = (query = {}) => {
+  const knownQuery = Object.fromEntries(
+    ["search", "origin", "ownership", "syncStatus", "page", "pageSize"]
+      .filter((key) => typeof query[key] === "string")
+      .map((key) => [key, query[key]]),
+  );
+  const parsed = patientListQuerySchema.safeParse(knownQuery);
+
+  return parsed.success ? parsed.data : { ...PATIENT_LIST_DEFAULTS };
+};
 export const patientArchiveSchema = z.object({}).strict();
 
 export const getFieldErrors = (error) => {

@@ -7,6 +7,7 @@ import {
   createPatientUpdateSchemaForDate,
   getFieldErrors,
   isValidDateOnly,
+  parsePatientListPageQuery,
   patientArchiveSchema,
   patientListQuerySchema,
   patientRouteParamsSchema,
@@ -143,10 +144,63 @@ test("update, route, list, and archive schemas use strict policies", () => {
     false,
   );
   assert.equal(patientListQuerySchema.safeParse({}).success, true);
+  assert.deepEqual(patientListQuerySchema.parse({}), {
+    search: "",
+    origin: "all",
+    ownership: "all",
+    syncStatus: "all",
+    page: 1,
+    pageSize: 10,
+  });
+  assert.deepEqual(
+    patientListQuerySchema.parse({
+      search: "  pt-100  ",
+      origin: "FHIR",
+      ownership: "EXTERNAL_READ_ONLY",
+      syncStatus: "SYNCED",
+      page: "2",
+      pageSize: "25",
+    }),
+    {
+      search: "pt-100",
+      origin: "FHIR",
+      ownership: "EXTERNAL_READ_ONLY",
+      syncStatus: "SYNCED",
+      page: 2,
+      pageSize: 25,
+    },
+  );
+  for (const query of [
+    { search: "x".repeat(101) },
+    { page: "0" },
+    { page: "1.5" },
+    { pageSize: "20" },
+    { origin: "REMOTE" },
+    { ownership: "LOCAL" },
+    { syncStatus: "COMPLETE" },
+  ]) {
+    assert.equal(patientListQuerySchema.safeParse(query).success, false);
+  }
   assert.equal(
     patientListQuerySchema.safeParse({ archived: "true" }).success,
     false,
   );
+  assert.deepEqual(parsePatientListPageQuery({ page: "bad" }), {
+    search: "",
+    origin: "all",
+    ownership: "all",
+    syncStatus: "all",
+    page: 1,
+    pageSize: 10,
+  });
+  assert.deepEqual(parsePatientListPageQuery({ ignored: "FHIR" }), {
+    search: "",
+    origin: "all",
+    ownership: "all",
+    syncStatus: "all",
+    page: 1,
+    pageSize: 10,
+  });
   assert.equal(patientArchiveSchema.safeParse({}).success, true);
   assert.equal(
     patientArchiveSchema.safeParse({ patientId: "x" }).success,

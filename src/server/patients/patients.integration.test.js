@@ -78,7 +78,7 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
     assert.equal(auditEntries[0].action, PATIENT_AUDIT_ACTIONS.create);
     assert.equal(auditEntries[0].clinicianId, clinician.id);
 
-    const activePatients = await listActivePatients(prisma);
+    const { patients: activePatients } = await listActivePatients(prisma);
     assert.equal(
       activePatients.some(({ id }) => id === created.id),
       true,
@@ -251,7 +251,9 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
     assert.equal(archived.patient.archivedAt, "2026-07-25T12:00:00.000Z");
     assert.notEqual(await getPatientById(prisma, created.id), null);
     assert.equal(
-      (await listActivePatients(prisma)).some(({ id }) => id === created.id),
+      (await listActivePatients(prisma)).patients.some(
+        ({ id }) => id === created.id,
+      ),
       false,
     );
 
@@ -315,6 +317,118 @@ test("patient CRUD, audit entries, conflicts, and rollbacks enforce database int
       await prisma.clinician.delete({ where: { id: clinicianId } });
     }
 
+    await prisma.$disconnect();
+  }
+});
+
+test("patient list search, FHIR filters, pagination, and ordering execute in PostgreSQL", async () => {
+  const prisma = new PrismaClient({
+    adapter: new PrismaPg({ connectionString: env.DATABASE_URL }),
+  });
+  const suffix = randomBytes(8).toString("hex");
+  const patientIds = [];
+  let clinicianId;
+
+  try {
+    const clinician = await prisma.clinician.create({
+      data: {
+        email: `patient-list-${suffix}@example.test`,
+        passwordHash: await hashPassword(randomBytes(24).toString("base64url")),
+        fullName: "Patient List Integration Clinician",
+      },
+      select: { id: true },
+    });
+    clinicianId = clinician.id;
+
+    for (let index = 0; index < 13; index += 1) {
+      const patient = await prisma.patient.create({
+        data: {
+          mrn: `LIST-${suffix}-${String(index).padStart(2, "0")}`.toUpperCase(),
+          firstName: index === 0 ? "Leila" : `Patient${index}`,
+          lastName: index === 0 ? `Haddad${suffix}` : "Pagination",
+          dateOfBirth: new Date("1990-04-12T00:00:00.000Z"),
+          sex: "UNKNOWN",
+          origin: index === 0 ? "FHIR" : "LOCAL",
+          fhirOwnership: index === 0 ? "EXTERNAL_READ_ONLY" : "CANDIDATE_OWNED",
+          fhirSyncStatus: index === 0 ? "FAILED" : "NOT_SYNCED",
+          archivedAt:
+            index === 12 ? new Date("2026-07-25T12:00:00.000Z") : null,
+          createdById: clinician.id,
+        },
+        select: { id: true },
+      });
+      patientIds.push(patient.id);
+    }
+
+    const firstPage = await listActivePatients(prisma, {
+      search: `LIST-${suffix}`,
+      origin: "all",
+      ownership: "all",
+      syncStatus: "all",
+      page: 1,
+      pageSize: 10,
+    });
+    assert.equal(firstPage.pagination.totalCount, 12);
+    assert.equal(firstPage.pagination.totalPages, 2);
+    assert.equal(firstPage.patients.length, 10);
+    assert.equal(firstPage.pagination.hasPreviousPage, false);
+    assert.equal(firstPage.pagination.hasNextPage, true);
+    assert.equal(
+      firstPage.patients.some(({ id }) => id === patientIds[12]),
+      false,
+    );
+
+    const secondPage = await listActivePatients(prisma, {
+      ...firstPage.query,
+      page: 2,
+    });
+    assert.equal(secondPage.patients.length, 2);
+    assert.equal(secondPage.pagination.hasPreviousPage, true);
+    assert.equal(secondPage.pagination.hasNextPage, false);
+
+    const mrnSearch = await listActivePatients(prisma, {
+      ...firstPage.query,
+      search: `list-${suffix}-00`,
+    });
+    assert.equal(mrnSearch.pagination.totalCount, 1);
+    assert.equal(mrnSearch.patients[0].mrn.endsWith("-00"), true);
+
+    const nameSearch = await listActivePatients(prisma, {
+      ...firstPage.query,
+      search: `leila haddad${suffix}`,
+    });
+    assert.equal(nameSearch.pagination.totalCount, 1);
+    assert.equal(nameSearch.patients[0].firstName, "Leila");
+
+    const combinedFilters = await listActivePatients(prisma, {
+      ...firstPage.query,
+      origin: "FHIR",
+      ownership: "EXTERNAL_READ_ONLY",
+      syncStatus: "FAILED",
+    });
+    assert.equal(combinedFilters.pagination.totalCount, 1);
+    assert.equal(
+      combinedFilters.patients[0].fhirOwnership,
+      "EXTERNAL_READ_ONLY",
+    );
+    assert.equal(combinedFilters.patients[0].fhirSyncStatus, "FAILED");
+
+    const beyondFinalPage = await listActivePatients(prisma, {
+      ...firstPage.query,
+      page: 999,
+    });
+    assert.equal(beyondFinalPage.pagination.page, 2);
+    assert.deepEqual(
+      beyondFinalPage.patients.map(({ mrn }) => mrn),
+      secondPage.patients.map(({ mrn }) => mrn),
+    );
+  } finally {
+    if (patientIds.length > 0) {
+      await prisma.patient.deleteMany({ where: { id: { in: patientIds } } });
+    }
+    if (clinicianId) {
+      await prisma.clinician.delete({ where: { id: clinicianId } });
+    }
     await prisma.$disconnect();
   }
 });

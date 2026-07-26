@@ -114,10 +114,9 @@ const main = async () => {
 
     await page.getByRole("link", { name: "مريض جديد" }).click();
     await page.waitForURL(`${BASE_URL}/patients/new`);
-    assert.equal(
-      await page.getByRole("heading", { name: "إنشاء مريض" }).isVisible(),
-      true,
-    );
+    await page
+      .getByRole("heading", { name: "إنشاء مريض" })
+      .waitFor({ state: "visible" });
 
     await page.locator("#mrn").fill(` ${normalizedMrn.toLowerCase()} `);
     await page.locator("#firstName").fill("Browser");
@@ -158,6 +157,100 @@ const main = async () => {
     );
     await assertNoSeriousAccessibilityViolations(page);
 
+    for (let index = 0; index < 11; index += 1) {
+      const response = await page.request.post("/api/private/patients", {
+        data: {
+          mrn: `PAGE-${suffix}-${String(index).padStart(2, "0")}`.toUpperCase(),
+          firstName: `Page ${index}`,
+          lastName: "Verification",
+          dateOfBirth: "2000-01-01",
+          sex: "UNKNOWN",
+          email: null,
+          phone: null,
+        },
+      });
+      assert.equal(response.status(), 201);
+      patientIds.push((await response.json()).patient.id);
+    }
+    await page.goto(`/patients?search=page-${suffix}&pageSize=10`);
+    await page.locator('a[rel="next"]').waitFor({ state: "visible" });
+    await Promise.all([
+      page.waitForURL(/page=2/),
+      page.locator('a[rel="next"]').click(),
+    ]);
+    assert.match(page.url(), /search=page-/);
+    await page.goBack();
+    await page.waitForURL((url) => !url.searchParams.has("page"));
+
+    await page.goto(
+      `/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=NOT_SYNCED&pageSize=10`,
+    );
+    assert.match(page.url(), /search=/);
+    assert.equal(
+      await page.locator(`a[href="/patients/${patientId}"]`).count(),
+      2,
+    );
+    for (const detailLink of await page
+      .locator(`a[href="/patients/${patientId}"]`)
+      .all()) {
+      assert.equal((await detailLink.textContent()).trim(), normalizedMrn);
+    }
+    assert.equal(
+      await page.locator(`a[href="/patients/${patientId}/send"]`).count(),
+      2,
+    );
+    assert.equal(
+      await page.locator(`a[href="/patients/${patientId}/schedule"]`).count(),
+      2,
+    );
+    assert.equal(
+      await page.locator(`tr a[href="/patients/${patientId}"]`).count(),
+      1,
+    );
+    assert.equal(
+      await page
+        .locator(`tr:has(a[href="/patients/${patientId}"])`)
+        .getByText("Browser Verification", { exact: true })
+        .locator("a")
+        .count(),
+      0,
+    );
+
+    const assessmentCount = await prisma.assessment.count({
+      where: { patientId },
+    });
+    await page
+      .locator(`a[href="/patients/${patientId}/send"]`)
+      .filter({ visible: true })
+      .click();
+    await page.waitForURL(`${BASE_URL}/patients/${patientId}/send`);
+    assert.equal(
+      await prisma.assessment.count({ where: { patientId } }),
+      assessmentCount,
+    );
+    await page.goto(`/patients?search=${normalizedMrn.toLowerCase()}`);
+    const scheduleLink = page
+      .locator(`a[href="/patients/${patientId}/schedule"]`)
+      .filter({ visible: true });
+    await scheduleLink.focus();
+    await scheduleLink.press("Enter");
+    await page.waitForURL(`${BASE_URL}/patients/${patientId}/schedule`);
+    assert.equal(
+      await prisma.assessment.count({ where: { patientId } }),
+      assessmentCount,
+    );
+    await page.goto(`/patients?search=NO-MATCH-${suffix}`);
+    await page
+      .getByRole("heading", { name: "لا يوجد مرضى مطابقون" })
+      .waitFor({ state: "visible" });
+    const clearFiltersLink = page
+      .getByRole("link", { name: "مسح البحث وعوامل التصفية" })
+      .first();
+    assert.equal(await clearFiltersLink.getAttribute("href"), "/patients");
+    await page.goto("/patients");
+    await assertNoSeriousAccessibilityViolations(page);
+
+    await page.goto(`/patients/${patientId}`);
     await page.getByRole("link", { name: "تعديل المريض" }).click();
     await page.waitForURL(`${BASE_URL}/patients/${patientId}/edit`);
     await page.locator("#firstName").fill("Updated Browser");

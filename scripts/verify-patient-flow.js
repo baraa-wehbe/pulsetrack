@@ -146,11 +146,48 @@ const main = async () => {
 
     const list = await authenticatedRequest("/api/private/patients");
     assert.equal(list.status, 200);
+    const listBody = await list.json();
     assert.equal(
-      (await list.json()).patients.some(({ id }) => id === patient.id),
+      listBody.patients.some(({ id }) => id === patient.id),
       true,
     );
+    assert.equal(listBody.pagination.page, 1);
+    assert.equal(listBody.pagination.pageSize, 10);
+    assert.ok(listBody.pagination.totalCount >= 1);
+    assert.equal(listBody.query.search, "");
+    const safeListPatient = listBody.patients.find(
+      ({ id }) => id === patient.id,
+    );
+    assert.equal(safeListPatient.origin, "LOCAL");
+    assert.equal(safeListPatient.fhirOwnership, "NONE");
+    assert.equal(safeListPatient.fhirSyncStatus, "NOT_SYNCED");
+    assert.equal("fhirLastSyncError" in safeListPatient, false);
     assert.match(list.headers.get("cache-control"), /no-store/);
+
+    const searchedList = await authenticatedRequest(
+      `/api/private/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=NOT_SYNCED&page=1&pageSize=10`,
+    );
+    assert.equal(searchedList.status, 200);
+    const searchedBody = await searchedList.json();
+    assert.deepEqual(
+      searchedBody.patients.map(({ id }) => id),
+      [patient.id],
+    );
+    assert.equal(searchedBody.pagination.totalCount, 1);
+
+    for (const invalidQuery of [
+      "page=0",
+      "pageSize=20",
+      "origin=REMOTE",
+      "ownership=LOCAL",
+      "syncStatus=COMPLETE",
+      "archived=true",
+    ]) {
+      const invalidList = await authenticatedRequest(
+        `/api/private/patients?${invalidQuery}`,
+      );
+      assert.equal(invalidList.status, 400);
+    }
 
     const detail = await authenticatedRequest(
       `/api/private/patients/${patient.id}`,

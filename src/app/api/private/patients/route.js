@@ -23,9 +23,9 @@ export const GET = withClinicianAuthentication(async (request) => {
   }
 
   try {
-    const patients = await listActivePatients(prisma);
+    const result = await listActivePatients(prisma, parsedQuery.data);
 
-    return patientJson({ patients });
+    return patientJson(result);
   } catch (error) {
     console.error("Patient list failed.", {
       name: error instanceof Error ? error.name : "UnknownError",

@@ -36,3 +36,15 @@ body {
 :focus-visible {
   scroll-margin-block: 6rem;
 }
+
+.language-ar {
+  display: none;
+}
+
+html[lang="ar"] .language-en {
+  display: none;
+}
+
+html[lang="ar"] .language-ar {
+  display: inline;
+}
