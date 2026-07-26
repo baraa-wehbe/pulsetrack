@@ -1,0 +1,196 @@
+import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+import {
+  LAB_IMPORT_STATUS_PRESENTATIONS,
+  getLabImportStatusPresentation,
+} from "@/lib/lab-import-presentation";
+import { listLabImports } from "@/server/labs/service";
+import {
+  LAB_CSV_REQUIRED_HEADERS,
+  LAB_CSV_TEMPLATE_FILENAME,
+  readLabCsvTemplate,
+} from "@/server/labs/template";
+import { createLabTemplateDownloadHandler } from "@/server/labs/template-http";
+import {
+  LabUploadValidationError,
+  validateLabCsvFile,
+} from "@/server/labs/validation";
+
+const templateContent = [
+  "mrn,collected_date,test_code,test_name,value,unit,ref_low,ref_high",
+  "MRN-1001,2026-06-01,GLU-F,Fasting Glucose,105,mg/dL,70,99",
+  "MRN-1001,2026-06-01,HBA1C,Hemoglobin A1c,6.8,%,4.0,5.6",
+  "",
+].join("\n");
+
+const expectUploadError = async (file, maximumBytes, code) => {
+  await assert.rejects(
+    validateLabCsvFile(file, maximumBytes),
+    (error) => error instanceof LabUploadValidationError && error.code === code,
+  );
+};
+
+test("template preserves the supplied filename and exact byte content", async () => {
+  const template = await readLabCsvTemplate();
+
+  assert.equal(LAB_CSV_TEMPLATE_FILENAME, "lab-results-template.csv");
+  assert.equal(template.toString("utf8"), templateContent);
+  assert.equal(template.byteLength, 180);
+  assert.equal(
+    createHash("sha256").update(template).digest("hex"),
+    "33e8a4e8c003ed2cf8a3ac4708b8acb135b572d370ca548bcc8fed8819b77b64",
+  );
+  assert.deepEqual(LAB_CSV_REQUIRED_HEADERS, [
+    "mrn",
+    "collected_date",
+    "test_code",
+    "test_name",
+    "value",
+    "unit",
+    "ref_low",
+    "ref_high",
+  ]);
+});
+
+test("template download preserves exact response bytes and original filename", async () => {
+  const handler = createLabTemplateDownloadHandler({
+    readTemplate: async () => Buffer.from(templateContent),
+  });
+  const response = await handler();
+
+  assert.equal(response.status, 200);
+  assert.equal(
+    response.headers.get("content-disposition"),
+    'attachment; filename="lab-results-template.csv"',
+  );
+  assert.equal(response.headers.get("content-type"), "text/csv; charset=utf-8");
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(await response.text(), templateContent);
+});
+
+test("valid CSV metadata is normalized safely and content is hashed", async () => {
+  const file = new File([templateContent], "lab-upload.csv", {
+    type: "text/csv",
+  });
+  const result = await validateLabCsvFile(file, 1024);
+
+  assert.equal(result.originalFileName, "lab-upload.csv");
+  assert.equal(
+    result.fileSha256,
+    createHash("sha256").update(templateContent).digest("hex"),
+  );
+  assert.equal(JSON.stringify(result).includes(templateContent), false);
+});
+
+test("missing, non-CSV, empty, and oversized uploads are rejected", async () => {
+  await expectUploadError(null, 1024, "FILE_REQUIRED");
+  await expectUploadError(
+    new File(["content"], "notes.txt", { type: "text/plain" }),
+    1024,
+    "CSV_REQUIRED",
+  );
+  await expectUploadError(
+    new File([], "empty.csv", { type: "text/csv" }),
+    1024,
+    "FILE_EMPTY",
+  );
+  await expectUploadError(
+    new File(["x".repeat(1025)], "large.csv", { type: "text/csv" }),
+    1024,
+    "FILE_TOO_LARGE",
+  );
+});
+
+test("missing, reordered, additional, and incorrect headers are rejected", async () => {
+  for (const header of [
+    "",
+    "mrn,collected_date,test_code",
+    "collected_date,mrn,test_code,test_name,value,unit,ref_low,ref_high",
+    `${LAB_CSV_REQUIRED_HEADERS.join(",")},extra`,
+    "MRN,collected_date,test_code,test_name,value,unit,ref_low,ref_high",
+  ]) {
+    await expectUploadError(
+      new File([`${header}\nrow`], "headers.csv", { type: "text/csv" }),
+      1024,
+      header ? "INVALID_HEADERS" : "INVALID_HEADERS",
+    );
+  }
+});
+
+test("history query is clinician-scoped, newest first, and safely serialized", async () => {
+  const now = new Date("2026-07-26T12:00:00.000Z");
+  let query;
+  const imports = await listLabImports(
+    {
+      labImport: {
+        findMany: async (value) => {
+          query = value;
+          return [
+            {
+              id: "import-2",
+              originalFileName: "new.csv",
+              status: "PROCESSING",
+              totalRows: 0,
+              acceptedRows: 0,
+              rejectedRows: 0,
+              duplicateRows: 0,
+              startedAt: now,
+              completedAt: null,
+              createdAt: now,
+              fileSha256: "must-not-serialize",
+              failureReason: "must-not-serialize",
+            },
+          ];
+        },
+      },
+    },
+    "clinician-1",
+  );
+
+  assert.deepEqual(query.where, { uploadedById: "clinician-1" });
+  assert.deepEqual(query.orderBy, [{ createdAt: "desc" }, { id: "desc" }]);
+  assert.equal(imports[0].originalFileName, "new.csv");
+  assert.doesNotMatch(JSON.stringify(imports), /fileSha256|failureReason/);
+});
+
+test("every stored import status has readable presentation and unknown is safe", () => {
+  assert.deepEqual(Object.keys(LAB_IMPORT_STATUS_PRESENTATIONS).sort(), [
+    "COMPLETED",
+    "COMPLETED_WITH_ERRORS",
+    "FAILED",
+    "PROCESSING",
+  ]);
+  assert.equal(
+    getLabImportStatusPresentation("PROCESSING").translationKey,
+    "labImportStatusProcessing",
+  );
+  assert.equal(
+    getLabImportStatusPresentation("UNRECOGNIZED").translationKey,
+    "labImportStatusUnknown",
+  );
+});
+
+test("lab upload UI and API remain protected, accessible, and server parsed", async () => {
+  const [page, form, route, templateRoute, validation] = await Promise.all([
+    readFile("src/app/(private)/lab-uploads/page.js", "utf8"),
+    readFile("src/components/lab-csv-upload-form.js", "utf8"),
+    readFile("src/app/api/private/lab-imports/route.js", "utf8"),
+    readFile("src/app/api/private/lab-imports/template/route.js", "utf8"),
+    readFile("src/server/labs/validation.js", "utf8"),
+  ]);
+
+  assert.match(page, /requireCurrentClinician/);
+  assert.match(page, /<table/);
+  assert.match(page, /scope="col"/);
+  assert.match(page, /md:hidden/);
+  assert.match(form, /<label/);
+  assert.match(form, /type="file"/);
+  assert.match(form, /aria-invalid/);
+  assert.match(route, /server\/labs\/http/);
+  assert.match(templateRoute, /withClinicianAuthentication/);
+  assert.match(validation, /createHash\("sha256"\)/);
+  assert.doesNotMatch(form, /createHash|fileSha256|prisma/);
+});

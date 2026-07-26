@@ -222,6 +222,16 @@ and risk band from the stored scoring bands. A conditional assessment update,
 response insert, and audit entry run in one transaction; the unique response
 constraint remains the database backstop against duplicate responses.
 
+### Lab CSV upload shell
+
+Authenticated clinicians can download the exact `lab-results-template.csv`
+project template and upload CSV files from `/lab-uploads`. The protected upload
+endpoint accepts non-empty `.csv` files up to `LAB_CSV_MAX_BYTES` (5 MiB by
+default), requires the template header row in its exact order, and creates a
+clinician-scoped `PROCESSING` lab-import record containing only safe filename
+metadata and a SHA-256 digest. Raw CSV files are not retained. Full row
+validation and lab-result creation are intentionally deferred.
+
 ## Commands
 
 ```bash
@@ -245,6 +255,8 @@ npm run test:patients:task07 # Run patient-list HTTP, browser, RTL, and axe chec
 npm run test:assessments # Run assessment validation and security unit tests
 npm run test:assessments:integration # Run mocked-provider database tests
 npm run test:assessment-job # Run scheduler authorization and history-status tests
+npm run test:labs # Run lab-template, upload-validation, and history tests
+npm run test:labs:integration # Run lab-import PostgreSQL tests
 npm run test:public-assessment # Run public form and scoring unit tests
 npm run test:public-assessment:integration # Run single-use PostgreSQL tests
 npm run test:patients:task08 # Run patient-detail and patient-list browser checks
