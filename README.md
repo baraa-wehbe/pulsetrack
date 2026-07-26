@@ -176,18 +176,37 @@ all enum states, page `1`, and page size `10`. Page sizes are limited to `10`,
 `25`, or `50`. Multi-word search requires every token to match MRN, first name,
 or last name in PostgreSQL. Results are ordered by last name, first name, MRN,
 then patient ID. Source, ownership, and sync badges display the stored Prisma
-enum values without live FHIR calls. Send and Schedule lead to protected
-informational placeholders and do not create questionnaire data.
+enum values without live FHIR calls. Send and Schedule lead to authenticated
+assessment delivery workflows.
 
 Patient MRNs link to active-only detail routes at `/patients/[mrn]`. The detail
 page shows demographics, safe FHIR state badges, and assessment history ordered
 by creation time newest first. Completed DSMA-8 entries display the stored total
 score and risk band; the score maximum comes from the immutable questionnaire
 definition. The route never selects assessment tokens, recipient addresses,
-answers, scoring snapshots, delivery failures, or internal assessment IDs.
-Archived and unknown MRNs use the protected localized not-found state. Lab
+answers, scoring snapshots, provider errors, or internal assessment IDs.
+Delivery failure is exposed only as a safe derived state. Archived and unknown
+MRNs use the protected localized not-found state. Lab
 summary cards remain explicit placeholders until lab-result presentation is
 implemented.
+
+### Assessment delivery
+
+Clinicians can send the active DSMA-8 assessment immediately or schedule a
+future delivery. Both paths use the same server-only service. A trusted
+scheduler processes due work with:
+
+```bash
+npm run assessments:deliver-due
+```
+
+Configure the server-only `RESEND_API_KEY` and `ASSESSMENT_EMAIL_FROM`
+variables documented in `.env.example`. Each delivery uses a cryptographically
+random token and stores only its SHA-256 hash. The raw token exists only in the
+patient link passed to the email provider; it is never returned by the API or
+written to logs or audit metadata. Confirmed sends set `sent_at` and an expiry
+exactly seven days later. Every success or failure creates a delivery-attempt
+row containing only controlled provider metadata and sanitized errors.
 
 ## Commands
 
@@ -203,11 +222,14 @@ npm run db:up        # Start local PostgreSQL
 npm run db:status    # Show database container status
 npm run db:down      # Stop local PostgreSQL
 npm run clinician:create -- --email <email> --password "<password>" --name "<name>"
+npm run assessments:deliver-due # Deliver scheduled assessments that are due
 npm test             # Run the unit test suite
 npm run test:auth    # Run clinician authentication unit tests
 npm run test:shell   # Run shell, navigation, language, RTL, and theme tests
 npm run test:patients # Run patient validation and UI architecture tests
 npm run test:patients:task07 # Run patient-list HTTP, browser, RTL, and axe checks
+npm run test:assessments # Run assessment validation and security unit tests
+npm run test:assessments:integration # Run mocked-provider database tests
 npm run test:patients:task08 # Run patient-detail and patient-list browser checks
 ```
 

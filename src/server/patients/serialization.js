@@ -41,8 +41,11 @@ const toSafeAssessment = (assessment) => {
     status: assessment.status,
     scheduledFor: assessment.scheduledFor.toISOString(),
     sentAt: assessment.sentAt?.toISOString() ?? null,
+    expiresAt: assessment.expiresAt?.toISOString() ?? null,
     completedAt: assessment.completedAt?.toISOString() ?? null,
     createdAt: assessment.createdAt.toISOString(),
+    deliveryFailed:
+      assessment.status === "FAILED" && Boolean(assessment.lastSendError),
     response: assessment.response
       ? {
           totalScore: assessment.response.totalScore,
@@ -120,8 +123,10 @@ export const PATIENT_DETAIL_SELECT = Object.freeze({
       status: true,
       scheduledFor: true,
       sentAt: true,
+      expiresAt: true,
       completedAt: true,
       createdAt: true,
+      lastSendError: true,
       questionnaire: {
         select: {
           code: true,

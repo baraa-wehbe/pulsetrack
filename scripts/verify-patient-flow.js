@@ -64,6 +64,10 @@ const main = async () => {
         "/api/private/patients/8700ba23-32c7-4d26-9497-35fcf7660f51/archive",
         "POST",
       ],
+      [
+        "/api/private/patients/8700ba23-32c7-4d26-9497-35fcf7660f51/assessments",
+        "POST",
+      ],
     ]) {
       const response = await request(path, {
         method,
@@ -143,6 +147,43 @@ const main = async () => {
       }),
       1,
     );
+
+    const invalidSchedule = await authenticatedRequest(
+      `/api/private/patients/${patient.mrn}/assessments`,
+      {
+        method: "POST",
+        ...jsonBody({
+          deliveryMode: "SCHEDULED",
+          scheduledFor: "2020-01-01T00:00:00.000Z",
+        }),
+      },
+    );
+    assert.equal(invalidSchedule.status, 400);
+
+    const scheduled = await authenticatedRequest(
+      `/api/private/patients/${patient.mrn}/assessments`,
+      {
+        method: "POST",
+        ...jsonBody({
+          deliveryMode: "SCHEDULED",
+          scheduledFor: new Date(Date.now() + 86_400_000).toISOString(),
+        }),
+      },
+    );
+    assert.equal(scheduled.status, 201);
+    const scheduledBody = await scheduled.json();
+    assert.equal(scheduledBody.assessment.status, "SCHEDULED");
+    assert.equal(scheduledBody.scheduled, true);
+    assert.equal(JSON.stringify(scheduledBody).includes("token"), false);
+    const storedSchedule = await prisma.assessment.findFirst({
+      where: { patientId: patient.id, status: "SCHEDULED" },
+      select: { tokenHash: true, sentAt: true, expiresAt: true },
+    });
+    assert.deepEqual(storedSchedule, {
+      tokenHash: null,
+      sentAt: null,
+      expiresAt: null,
+    });
 
     const list = await authenticatedRequest("/api/private/patients");
     assert.equal(list.status, 200);
@@ -365,6 +406,19 @@ const main = async () => {
     }
 
     if (patientIds.length > 0) {
+      const assessmentIds = await prisma.assessment.findMany({
+        where: { patientId: { in: patientIds } },
+        select: { id: true },
+      });
+      await prisma.auditLog.deleteMany({
+        where: {
+          entityType: "ASSESSMENT",
+          entityId: { in: assessmentIds.map(({ id }) => id) },
+        },
+      });
+      await prisma.assessment.deleteMany({
+        where: { patientId: { in: patientIds } },
+      });
       await prisma.auditLog.deleteMany({
         where: { entityType: "PATIENT", entityId: { in: patientIds } },
       });

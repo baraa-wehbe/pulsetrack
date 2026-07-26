@@ -1,9 +1,12 @@
 import Link from "next/link";
 
-export default function PatientWorkflowPlaceholder({
+import PatientAssessmentForm from "@/components/patient-assessment-form";
+
+export default function PatientAssessmentWorkflow({
   description,
   heading,
   messages,
+  mode,
   patient,
 }) {
   return (
@@ -25,12 +28,11 @@ export default function PatientWorkflowPlaceholder({
           {heading}
         </h1>
         <p className="mt-3 text-slate-600 dark:text-slate-300">{description}</p>
-        <p
-          className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
-          role="status"
-        >
-          {messages.workflowUnavailable}
-        </p>
+        <PatientAssessmentForm
+          messages={messages}
+          mode={mode}
+          patient={patient}
+        />
       </div>
     </section>
   );

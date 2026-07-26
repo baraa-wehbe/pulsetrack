@@ -83,12 +83,30 @@ const translations = {
     backToWorkspace: "Back to workspace",
     sendQuestionnaire: "Send questionnaire",
     scheduleQuestionnaire: "Schedule questionnaire",
-    sendPlaceholderDescription:
-      "This protected destination preserves the selected patient context without sending data.",
-    schedulePlaceholderDescription:
-      "This protected destination preserves the selected patient context without creating a schedule.",
-    workflowUnavailable:
-      "This questionnaire workflow is not available yet. No questionnaire or schedule record has been created.",
+    sendAssessmentDescription:
+      "Send the active DSMA-8 assessment to this patient now.",
+    scheduleAssessmentDescription:
+      "Choose a future date and time for secure assessment delivery.",
+    recipient: "Recipient",
+    scheduledFor: "Scheduled delivery",
+    confirmSend: "Send assessment",
+    confirmSchedule: "Schedule assessment",
+    assessmentSubmitting: "Saving assessment…",
+    patientEmailRequired:
+      "Add an email address to the active patient record before sending an assessment.",
+    scheduleMustBeFuture: "Choose a delivery time in the future.",
+    scheduleInvalid: "Enter a valid delivery date and time.",
+    assessmentCreationError:
+      "The assessment could not be created safely. Try again.",
+    assessmentSentNotice: "The assessment email was sent successfully.",
+    assessmentScheduledNotice: "The assessment was scheduled successfully.",
+    assessmentFailedNotice:
+      "The assessment was saved, but email delivery could not be confirmed.",
+    deliveryFailedDescription:
+      "Email delivery could not be confirmed. No sensitive provider details are shown.",
+    assessmentScheduleLabel: "Scheduled for",
+    assessmentSentLabel: "Sent",
+    assessmentExpiryLabel: "Expires",
     newPatient: "New patient",
     patientList: "Active patients",
     patientListCaption: "Active patient records",
@@ -289,12 +307,28 @@ const translations = {
     backToWorkspace: "العودة إلى مساحة العمل",
     sendQuestionnaire: "إرسال استبيان",
     scheduleQuestionnaire: "جدولة استبيان",
-    sendPlaceholderDescription:
-      "تحفظ هذه الوجهة المحمية سياق المريض المحدد من دون إرسال بيانات.",
-    schedulePlaceholderDescription:
-      "تحفظ هذه الوجهة المحمية سياق المريض المحدد من دون إنشاء جدول.",
-    workflowUnavailable:
-      "مسار عمل الاستبيان غير متاح بعد. لم يتم إنشاء استبيان أو سجل جدولة.",
+    sendAssessmentDescription: "إرسال تقييم DSMA-8 النشط إلى هذا المريض الآن.",
+    scheduleAssessmentDescription:
+      "اختر تاريخًا ووقتًا مستقبليين لإرسال التقييم بأمان.",
+    recipient: "المستلم",
+    scheduledFor: "موعد الإرسال",
+    confirmSend: "إرسال التقييم",
+    confirmSchedule: "جدولة التقييم",
+    assessmentSubmitting: "جارٍ حفظ التقييم…",
+    patientEmailRequired:
+      "أضف بريدًا إلكترونيًا إلى سجل المريض النشط قبل إرسال التقييم.",
+    scheduleMustBeFuture: "اختر وقت إرسال في المستقبل.",
+    scheduleInvalid: "أدخل تاريخًا ووقتًا صالحين للإرسال.",
+    assessmentCreationError: "تعذر إنشاء التقييم بأمان. حاول مرة أخرى.",
+    assessmentSentNotice: "تم إرسال رسالة التقييم بنجاح.",
+    assessmentScheduledNotice: "تمت جدولة التقييم بنجاح.",
+    assessmentFailedNotice:
+      "تم حفظ التقييم، ولكن تعذر تأكيد إرسال البريد الإلكتروني.",
+    deliveryFailedDescription:
+      "تعذر تأكيد إرسال البريد الإلكتروني. لا يتم عرض تفاصيل حساسة عن مزود الخدمة.",
+    assessmentScheduleLabel: "مجدول في",
+    assessmentSentLabel: "أُرسل في",
+    assessmentExpiryLabel: "تنتهي الصلاحية في",
     newPatient: "مريض جديد",
     patientList: "المرضى النشطون",
     patientListCaption: "سجلات المرضى النشطين",

@@ -84,7 +84,7 @@ test("patient list has responsive cards and a semantic table", async () => {
   assert.match(source, /name=\{name\}/);
 });
 
-test("only MRN links to patient details and future actions have protected destinations", async () => {
+test("only MRN links to patient details and assessment actions have protected destinations", async () => {
   const source = await readSource("app/(private)/patients/page.js");
 
   assert.match(source, /buildPatientDetailHref\(patient\.mrn, listQuery\)/);
@@ -135,7 +135,8 @@ test("FHIR badge mappings and list labels are centralized in English and Arabic"
   assert.match(translations, /searchPatients: "Search patients"/);
   assert.match(translations, /searchPatients: "البحث عن المرضى"/);
   assert.match(translations, /noMatchingPatientsTitle:/);
-  assert.match(translations, /workflowUnavailable:/);
+  assert.match(translations, /sendAssessmentDescription:/);
+  assert.match(translations, /scheduleAssessmentDescription:/);
 });
 
 test("English and Arabic patient UI translations are centralized", async () => {
@@ -151,6 +152,7 @@ test("no patient authentication UI or positive tab index is introduced", async (
   const files = await Promise.all([
     readSource("components/patient-form.js"),
     readSource("components/archive-patient-button.js"),
+    readSource("components/patient-assessment-form.js"),
     readSource("app/(private)/patients/page.js"),
     readSource("app/(private)/patients/[patientId]/page.js"),
     readSource("app/(private)/patients/[patientId]/send/page.js"),

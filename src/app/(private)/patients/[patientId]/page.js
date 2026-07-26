@@ -54,6 +54,11 @@ export default async function PatientDetailsPage({ params, searchParams }) {
   const query = await searchParams;
   const returnTo = resolvePatientListReturnPath(query?.returnTo);
   const messages = getTranslations(language);
+  const assessmentNotice = {
+    sent: messages.assessmentSentNotice,
+    scheduled: messages.assessmentScheduledNotice,
+    failed: messages.assessmentFailedNotice,
+  }[typeof query?.assessment === "string" ? query.assessment : ""];
   const sex = {
     MALE: messages.sexMale,
     FEMALE: messages.sexFemale,
@@ -88,6 +93,18 @@ export default async function PatientDetailsPage({ params, searchParams }) {
           </div>
           <div className="flex flex-wrap gap-3">
             <Link
+              className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              href={`/patients/${encodeURIComponent(patient.mrn)}/send`}
+            >
+              {messages.send}
+            </Link>
+            <Link
+              className="rounded-lg border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
+              href={`/patients/${encodeURIComponent(patient.mrn)}/schedule`}
+            >
+              {messages.schedule}
+            </Link>
+            <Link
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               href={`/patients/${encodeURIComponent(patient.mrn)}/edit`}
             >
@@ -118,6 +135,15 @@ export default async function PatientDetailsPage({ params, searchParams }) {
           />
         </div>
       </div>
+
+      {assessmentNotice && (
+        <p
+          className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100"
+          role="status"
+        >
+          {assessmentNotice}
+        </p>
+      )}
 
       <section
         aria-labelledby="demographics-heading"
@@ -209,6 +235,41 @@ export default async function PatientDetailsPage({ params, searchParams }) {
                       value={assessment.status}
                     />
                   </div>
+
+                  <dl className="mt-4 grid gap-2 text-sm text-slate-600 sm:grid-cols-3 dark:text-slate-300">
+                    <div>
+                      <dt className="font-semibold">
+                        {messages.assessmentScheduleLabel}
+                      </dt>
+                      <dd>
+                        {formatTimestamp(assessment.scheduledFor, language)}
+                      </dd>
+                    </div>
+                    {assessment.sentAt && (
+                      <div>
+                        <dt className="font-semibold">
+                          {messages.assessmentSentLabel}
+                        </dt>
+                        <dd>{formatTimestamp(assessment.sentAt, language)}</dd>
+                      </div>
+                    )}
+                    {assessment.expiresAt && (
+                      <div>
+                        <dt className="font-semibold">
+                          {messages.assessmentExpiryLabel}
+                        </dt>
+                        <dd>
+                          {formatTimestamp(assessment.expiresAt, language)}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+
+                  {assessment.deliveryFailed && (
+                    <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
+                      {messages.deliveryFailedDescription}
+                    </p>
+                  )}
 
                   {assessment.response ? (
                     <div className="mt-5 grid gap-4 sm:grid-cols-[auto_1fr]">

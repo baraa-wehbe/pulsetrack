@@ -307,6 +307,14 @@ const main = async () => {
       .filter({ visible: true })
       .click();
     await page.waitForURL(`${BASE_URL}/patients/${patientId}/send`);
+    await page.locator("form").waitFor({ state: "visible" });
+    await page.waitForFunction(() => document.title.length > 0);
+    assert.equal(await page.locator("form").count(), 1);
+    assert.equal(
+      await page.locator('button[type="submit"]:enabled').count(),
+      1,
+    );
+    await assertNoSeriousAccessibilityViolations(page);
     assert.equal(
       await prisma.assessment.count({ where: { patientId } }),
       assessmentCount,
@@ -318,6 +326,12 @@ const main = async () => {
     await scheduleLink.focus();
     await scheduleLink.press("Enter");
     await page.waitForURL(`${BASE_URL}/patients/${patientId}/schedule`);
+    await page.locator("#scheduledFor").waitFor({ state: "visible" });
+    await page.waitForFunction(() => document.title.length > 0);
+    await page.locator("#scheduledFor").fill("2020-01-01T10:00");
+    await page.locator('button[type="submit"]').click();
+    await page.locator("#scheduledFor-error").waitFor({ state: "visible" });
+    await assertNoSeriousAccessibilityViolations(page);
     assert.equal(
       await prisma.assessment.count({ where: { patientId } }),
       assessmentCount,
