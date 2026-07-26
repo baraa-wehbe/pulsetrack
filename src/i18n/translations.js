@@ -107,6 +107,21 @@ const translations = {
     assessmentScheduleLabel: "Scheduled for",
     assessmentSentLabel: "Sent",
     assessmentExpiryLabel: "Expires",
+    publicAssessmentUnavailableTitle: "Assessment unavailable",
+    publicAssessmentUnavailableDescription:
+      "This assessment link is invalid, expired, or has already been used.",
+    publicAssessmentPrivacyNotice:
+      "Your answers are submitted securely and can be used only once.",
+    publicAssessmentQuestions: "Assessment questions",
+    assessmentEveryQuestionRequired: "Answer every question before submitting.",
+    publicAssessmentSubmit: "Submit assessment",
+    publicAssessmentSubmitting: "Submitting…",
+    publicAssessmentSubmitError:
+      "The assessment could not be submitted safely. Try again.",
+    publicAssessmentLoading: "Loading assessment…",
+    publicAssessmentCompleteTitle: "Assessment complete",
+    publicAssessmentCompleteDescription:
+      "Thank you. Your responses were submitted successfully.",
     newPatient: "New patient",
     patientList: "Active patients",
     patientListCaption: "Active patient records",
@@ -329,6 +344,19 @@ const translations = {
     assessmentScheduleLabel: "مجدول في",
     assessmentSentLabel: "أُرسل في",
     assessmentExpiryLabel: "تنتهي الصلاحية في",
+    publicAssessmentUnavailableTitle: "التقييم غير متاح",
+    publicAssessmentUnavailableDescription:
+      "رابط التقييم غير صالح أو منتهي الصلاحية أو تم استخدامه مسبقًا.",
+    publicAssessmentPrivacyNotice:
+      "تُرسل إجاباتك بأمان ولا يمكن استخدام الرابط إلا مرة واحدة.",
+    publicAssessmentQuestions: "أسئلة التقييم",
+    assessmentEveryQuestionRequired: "أجب عن جميع الأسئلة قبل الإرسال.",
+    publicAssessmentSubmit: "إرسال التقييم",
+    publicAssessmentSubmitting: "جارٍ الإرسال…",
+    publicAssessmentSubmitError: "تعذر إرسال التقييم بأمان. حاول مرة أخرى.",
+    publicAssessmentLoading: "جارٍ تحميل التقييم…",
+    publicAssessmentCompleteTitle: "اكتمل التقييم",
+    publicAssessmentCompleteDescription: "شكرًا لك. تم إرسال إجاباتك بنجاح.",
     newPatient: "مريض جديد",
     patientList: "المرضى النشطون",
     patientListCaption: "سجلات المرضى النشطين",

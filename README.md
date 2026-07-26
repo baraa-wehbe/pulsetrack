@@ -208,6 +208,15 @@ written to logs or audit metadata. Confirmed sends set `sent_at` and an expiry
 exactly seven days later. Every success or failure creates a delivery-attempt
 row containing only controlled provider metadata and sanitized errors.
 
+The emailed `/assessment/[token]` route exchanges a valid raw token
+server-side for a short-lived signed `HttpOnly` access cookie and removes the
+raw token from the browser URL. The public `/assessment` page renders all eight
+questions and answer options from the immutable stored questionnaire JSON.
+Submission validates the exact stored item and option sets and derives the sum
+and risk band from the stored scoring bands. A conditional assessment update,
+response insert, and audit entry run in one transaction; the unique response
+constraint remains the database backstop against duplicate responses.
+
 ## Commands
 
 ```bash
@@ -230,6 +239,8 @@ npm run test:patients # Run patient validation and UI architecture tests
 npm run test:patients:task07 # Run patient-list HTTP, browser, RTL, and axe checks
 npm run test:assessments # Run assessment validation and security unit tests
 npm run test:assessments:integration # Run mocked-provider database tests
+npm run test:public-assessment # Run public form and scoring unit tests
+npm run test:public-assessment:integration # Run single-use PostgreSQL tests
 npm run test:patients:task08 # Run patient-detail and patient-list browser checks
 ```
 

@@ -292,9 +292,9 @@ const main = async () => {
     );
     await page.locator(detailSelector).filter({ visible: true }).click();
     await page.waitForURL(new RegExp(`/patients/${normalizedMrn}\\?returnTo=`));
-    const backHref = await page
-      .getByRole("link", { name: "العودة إلى المرضى" })
-      .getAttribute("href");
+    const backLink = page.getByRole("link", { name: "العودة إلى المرضى" });
+    await backLink.waitFor({ state: "visible" });
+    const backHref = await backLink.getAttribute("href");
     assert.match(backHref, /search=browser-/);
     assert.match(backHref, /origin=LOCAL/);
     await page.goto(backHref);

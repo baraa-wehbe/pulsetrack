@@ -93,6 +93,10 @@ const main = async () => {
         file: "scripts/verify-patient-browser.js",
       },
       {
+        label: "Public assessment browser verification",
+        file: "scripts/verify-public-assessment-browser.js",
+      },
+      {
         label: "Shell HTTP verification",
         file: "scripts/verify-shell-flow.js",
       },

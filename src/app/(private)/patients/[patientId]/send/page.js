@@ -21,12 +21,15 @@ export default async function SendQuestionnairePage({ params }) {
 
   const messages = getTranslations(language);
   return (
-    <PatientAssessmentWorkflow
-      description={messages.sendAssessmentDescription}
-      heading={messages.sendQuestionnaire}
-      messages={messages}
-      mode="IMMEDIATE"
-      patient={patient}
-    />
+    <>
+      <title>{`${messages.sendQuestionnaire} | PulseTrack`}</title>
+      <PatientAssessmentWorkflow
+        description={messages.sendAssessmentDescription}
+        heading={messages.sendQuestionnaire}
+        messages={messages}
+        mode="IMMEDIATE"
+        patient={patient}
+      />
+    </>
   );
 }
