@@ -305,7 +305,48 @@ const translations = {
       "The import validation report could not be loaded safely. Try again.",
     clinicDashboardHeading: "Clinic Dashboard",
     clinicDashboardDescription:
-      "Clinic-level monitoring and analytics will be implemented in a later task.",
+      "Monitor assessment activity, patient risk, and lab-import quality across the clinic.",
+    dashboardDateRange: "Dashboard date range",
+    startDate: "Start date",
+    endDate: "End date",
+    applyDateRange: "Apply date range",
+    dashboardDateErrorTitle: "Invalid date range",
+    dashboardDateInvalid: "Enter valid start and end dates.",
+    dashboardDateOrderInvalid:
+      "The start date must be on or before the end date.",
+    dashboardDateRangeTooLarge: "Choose a date range of 366 days or fewer.",
+    dashboardRangeSummary: "Time-bounded metrics from",
+    clinicOverview: "Clinic overview",
+    activePatients: "Active patients",
+    activePatientsLifetime:
+      "Current lifetime count; this card is not affected by the date range.",
+    assessmentQuality: "Assessment quality",
+    assessmentCompletionRate: "Assessment completion rate",
+    completionRateDefinition:
+      "Completed ÷ eligible assessments. Eligible statuses are sent, completed, and expired; scheduled, failed-delivery, and cancelled assessments are excluded.",
+    failedDeliveryRate: "Failed delivery rate",
+    failedDeliveryRateDefinition:
+      "Failed deliveries ÷ sent, completed, expired, and failed-delivery assessments.",
+    latestRiskDistribution: "Latest patient risk distribution",
+    latestRiskDistributionDescription:
+      "Each patient is counted once using their latest completed response submitted in the selected date range.",
+    noRiskData: "No completed questionnaire risk data exists in this range.",
+    labImportQuality: "Lab-import quality",
+    clinicianUploadScope:
+      "Upload metrics include only imports created by the signed-in clinician in the selected date range.",
+    labRejectedRows: "Rejected lab rows",
+    labDuplicateRows: "Duplicate lab rows",
+    importsWithFailures: "Imports with failures",
+    totalImportedRows: "Total uploaded rows",
+    recentLabUploads: "Recent lab uploads",
+    noRecentLabUploads: "No lab uploads exist in this date range.",
+    noClinicActivityTitle: "No activity in this range",
+    noClinicActivityDescription:
+      "No assessments, completed risk responses, or clinician uploads were recorded for the selected dates.",
+    loadingClinicDashboard: "Loading clinic dashboard…",
+    clinicDashboardErrorTitle: "Unable to load clinic dashboard",
+    clinicDashboardErrorDescription:
+      "The clinic dashboard could not be loaded safely. Try again.",
     patientDashboardHeading: "Patient Dashboard",
     patientDashboardDescription:
       "Review longitudinal laboratory results and completed questionnaire scores for an active patient.",
@@ -644,7 +685,48 @@ const translations = {
       "تعذر تحميل تقرير التحقق من الاستيراد بأمان. حاول مرة أخرى.",
     clinicDashboardHeading: "لوحة متابعة العيادة",
     clinicDashboardDescription:
-      "ستُنفّذ مؤشرات المتابعة والتحليلات الخاصة بالعيادة في مهمة لاحقة.",
+      "راقب نشاط الاستبيانات ومخاطر المرضى وجودة استيراد التحاليل على مستوى العيادة.",
+    dashboardDateRange: "النطاق الزمني للوحة المتابعة",
+    startDate: "تاريخ البداية",
+    endDate: "تاريخ النهاية",
+    applyDateRange: "تطبيق النطاق الزمني",
+    dashboardDateErrorTitle: "النطاق الزمني غير صالح",
+    dashboardDateInvalid: "أدخل تاريخي بداية ونهاية صالحين.",
+    dashboardDateOrderInvalid:
+      "يجب أن يكون تاريخ البداية قبل تاريخ النهاية أو مساويًا له.",
+    dashboardDateRangeTooLarge: "اختر نطاقًا زمنيًا لا يتجاوز 366 يومًا.",
+    dashboardRangeSummary: "المؤشرات المحددة زمنيًا من",
+    clinicOverview: "نظرة عامة على العيادة",
+    activePatients: "المرضى النشطون",
+    activePatientsLifetime:
+      "إجمالي حالي دائم؛ لا يتأثر هذا المؤشر بالنطاق الزمني.",
+    assessmentQuality: "جودة الاستبيانات",
+    assessmentCompletionRate: "معدل إكمال الاستبيانات",
+    completionRateDefinition:
+      "المكتملة ÷ الاستبيانات المؤهلة. تشمل الحالات المؤهلة المرسلة والمكتملة والمنتهية الصلاحية، وتُستبعد المجدولة وفاشلة التسليم والملغاة.",
+    failedDeliveryRate: "معدل فشل التسليم",
+    failedDeliveryRateDefinition:
+      "عمليات التسليم الفاشلة ÷ الاستبيانات المرسلة والمكتملة والمنتهية الصلاحية وفاشلة التسليم.",
+    latestRiskDistribution: "توزيع أحدث مخاطر المرضى",
+    latestRiskDistributionDescription:
+      "يُحتسب كل مريض مرة واحدة باستخدام أحدث استجابة مكتملة مقدمة ضمن النطاق الزمني المحدد.",
+    noRiskData: "لا توجد بيانات مخاطر لاستبيانات مكتملة ضمن هذا النطاق.",
+    labImportQuality: "جودة استيراد التحاليل",
+    clinicianUploadScope:
+      "تشمل مؤشرات الرفع فقط الملفات التي رفعها الطبيب المسجل دخوله ضمن النطاق الزمني المحدد.",
+    labRejectedRows: "صفوف التحاليل المرفوضة",
+    labDuplicateRows: "صفوف التحاليل المكررة",
+    importsWithFailures: "عمليات الاستيراد التي تتضمن إخفاقات",
+    totalImportedRows: "إجمالي الصفوف المرفوعة",
+    recentLabUploads: "أحدث ملفات التحاليل",
+    noRecentLabUploads: "لا توجد ملفات تحاليل مرفوعة ضمن هذا النطاق.",
+    noClinicActivityTitle: "لا يوجد نشاط ضمن هذا النطاق",
+    noClinicActivityDescription:
+      "لم تُسجّل استبيانات أو استجابات مخاطر مكتملة أو ملفات رفع للطبيب خلال التواريخ المحددة.",
+    loadingClinicDashboard: "جارٍ تحميل لوحة متابعة العيادة…",
+    clinicDashboardErrorTitle: "تعذّر تحميل لوحة متابعة العيادة",
+    clinicDashboardErrorDescription:
+      "تعذّر تحميل لوحة متابعة العيادة بأمان. حاول مرة أخرى.",
     patientDashboardHeading: "لوحة متابعة المريض",
     patientDashboardDescription:
       "راجع نتائج التحاليل المخبرية ودرجات الاستبيانات المكتملة للمريض النشط عبر الزمن.",
