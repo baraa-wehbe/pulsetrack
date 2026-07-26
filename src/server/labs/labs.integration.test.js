@@ -18,6 +18,7 @@ const prisma = new PrismaClient({
 const suffix = randomBytes(8).toString("hex");
 let clinician;
 let patient;
+let mixedImportId;
 
 test.before(async () => {
   clinician = await prisma.clinician.create({
@@ -97,6 +98,7 @@ test("mixed rows partially import with stable errors, counters, and authoritativ
     4096,
   );
   const labImport = await createLabImport(prisma, clinician.id, metadata);
+  mixedImportId = labImport.id;
   const result = await processLabImport(prisma, labImport.id, metadata.bytes, {
     now: new Date("2026-07-26T12:00:00.000Z"),
   });
@@ -165,6 +167,46 @@ test("mixed rows partially import with stable errors, counters, and authoritativ
   assert.equal(
     await prisma.labResult.count({ where: { patientId: patient.id } }),
     1,
+  );
+});
+
+test("import detail access and filters return every stored row exactly once", async () => {
+  const { getLabImportDetail } = await import("@/server/labs/detail");
+  const all = await getLabImportDetail(
+    prisma,
+    clinician.id,
+    mixedImportId,
+    "all",
+  );
+
+  assert.equal(all.rows.length, all.totalRows);
+  assert.equal(
+    new Set(all.rows.map(({ rowNumber }) => rowNumber)).size,
+    all.totalRows,
+  );
+  assert.equal(
+    (await getLabImportDetail(prisma, clinician.id, mixedImportId, "accepted"))
+      .rows.length,
+    all.acceptedRows,
+  );
+  assert.equal(
+    (await getLabImportDetail(prisma, clinician.id, mixedImportId, "rejected"))
+      .rows.length,
+    all.rejectedRows,
+  );
+  assert.equal(
+    (await getLabImportDetail(prisma, clinician.id, mixedImportId, "duplicate"))
+      .rows.length,
+    all.duplicateRows,
+  );
+  assert.equal(
+    await getLabImportDetail(
+      prisma,
+      "00000000-0000-4000-8000-000000000000",
+      mixedImportId,
+      "all",
+    ),
+    null,
   );
 });
 

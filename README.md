@@ -237,6 +237,13 @@ re-uploads. Raw CSV files are not retained; only safe filename metadata, a
 SHA-256 digest, normalized row results, and stable validation codes are stored.
 Downstream analytics remain intentionally deferred.
 
+Each upload-history filename links to the clinician-scoped validation detail at
+`/lab-uploads/[importId]`. The detail page presents every stored source row in
+CSV order and supports URL-backed `accepted`, `rejected`, and `duplicate`
+filters. Its protected report endpoint returns a deterministic CSV containing
+one summary record followed by one record per source row, including normalized
+values, stable codes, fields, and localized readable messages.
+
 ## Commands
 
 ```bash
@@ -262,6 +269,7 @@ npm run test:assessments:integration # Run mocked-provider database tests
 npm run test:assessment-job # Run scheduler authorization and history-status tests
 npm run test:labs # Run lab-template, upload-validation, and history tests
 npm run test:labs:integration # Run lab-import PostgreSQL tests
+npm run test:lab-report # Run import-detail and validation-report tests
 npm run test:public-assessment # Run public form and scoring unit tests
 npm run test:public-assessment:integration # Run single-use PostgreSQL tests
 npm run test:patients:task08 # Run patient-detail and patient-list browser checks

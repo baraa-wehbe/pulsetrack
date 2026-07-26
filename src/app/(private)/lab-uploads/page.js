@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import LabCsvUploadForm from "@/components/lab-csv-upload-form";
 import { env } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
@@ -141,7 +143,13 @@ export default async function LabUploadsPage() {
                       key={labImport.id}
                     >
                       <td className="max-w-xs break-words px-4 py-3 font-semibold">
-                        <bdi dir="ltr">{labImport.originalFileName}</bdi>
+                        <Link
+                          aria-label={`${messages.viewImportValidation}: ${labImport.originalFileName}`}
+                          className="text-teal-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
+                          href={`/lab-uploads/${encodeURIComponent(labImport.id)}`}
+                        >
+                          <bdi dir="ltr">{labImport.originalFileName}</bdi>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         {formatTimestamp(labImport.createdAt, language)}
@@ -173,9 +181,13 @@ export default async function LabUploadsPage() {
                   key={labImport.id}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <p className="min-w-0 break-words font-semibold">
+                    <Link
+                      aria-label={`${messages.viewImportValidation}: ${labImport.originalFileName}`}
+                      className="min-w-0 break-words font-semibold text-teal-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
+                      href={`/lab-uploads/${encodeURIComponent(labImport.id)}`}
+                    >
                       <bdi dir="ltr">{labImport.originalFileName}</bdi>
-                    </p>
+                    </Link>
                     <StatusBadge
                       messages={messages}
                       status={labImport.status}

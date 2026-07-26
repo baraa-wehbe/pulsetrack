@@ -43,6 +43,7 @@
     "test:assessment-job": "tsx --tsconfig jsconfig.json --test src/server/assessments/assessment-job.test.js src/lib/assessment-presentation.test.js",
     "test:labs": "tsx --tsconfig jsconfig.json --test src/server/labs/labs.test.js",
     "test:labs:integration": "tsx --tsconfig jsconfig.json --test src/server/labs/labs.integration.test.js",
+    "test:lab-report": "tsx --tsconfig jsconfig.json --test src/server/labs/lab-report.test.js",
     "test:public-assessment": "tsx --tsconfig jsconfig.json --test src/lib/questionnaire.test.js src/server/assessments/public-assessment.test.js",
     "test:public-assessment:integration": "tsx --tsconfig jsconfig.json --test src/server/assessments/public-assessment.integration.test.js",
     "test:public-assessment:browser": "tsx --tsconfig jsconfig.json scripts/verify-public-assessment.js"
@@ -55,6 +56,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "argon2": "^0.45.1",
     "csv-parse": "^6.2.1",
+    "csv-stringify": "^6.8.1",
     "dotenv": "^17.4.2",
     "next": "^16.2.11",
     "pg": "^8.22.0",

@@ -1,17 +1,10 @@
 import { parse } from "csv-parse/sync";
 
+import { LAB_ROW_ERROR_CODES } from "@/lib/lab-row-errors";
 import { normalizePatientMrn } from "@/lib/patient-validation";
 import { LAB_CSV_REQUIRED_HEADERS } from "@/server/labs/template";
 
-export const LAB_ROW_ERROR_CODES = Object.freeze({
-  MISSING_REQUIRED_FIELD: "MISSING_REQUIRED_FIELD",
-  UNKNOWN_MRN: "UNKNOWN_MRN",
-  UNKNOWN_TEST_CODE: "UNKNOWN_TEST_CODE",
-  INVALID_COLLECTED_DATE: "INVALID_COLLECTED_DATE",
-  FUTURE_COLLECTED_DATE: "FUTURE_COLLECTED_DATE",
-  INVALID_NUMERIC_VALUE: "INVALID_NUMERIC_VALUE",
-  DUPLICATE_ROW: "DUPLICATE_ROW",
-});
+export { LAB_ROW_ERROR_CODES } from "@/lib/lab-row-errors";
 
 const REQUIRED_FIELDS = Object.freeze([
   "mrn",
@@ -70,7 +63,8 @@ export const normalizeLabCsvRow = (fields) => ({
 const rowIdentity = (patientId, collectedDate, testCode) =>
   `${patientId}\u0000${collectedDate}\u0000${testCode}`;
 
-const validationError = (code) => ({ code });
+const validationError = (code, field = null) =>
+  field ? { code, field } : { code };
 
 export const validateNormalizedLabRow = (
   fields,
@@ -79,29 +73,45 @@ export const validateNormalizedLabRow = (
 ) => {
   const errors = [];
 
-  if (REQUIRED_FIELDS.some((field) => !fields[field])) {
-    errors.push(validationError(LAB_ROW_ERROR_CODES.MISSING_REQUIRED_FIELD));
+  for (const field of REQUIRED_FIELDS.filter((field) => !fields[field])) {
+    errors.push(
+      validationError(LAB_ROW_ERROR_CODES.MISSING_REQUIRED_FIELD, field),
+    );
   }
 
   const validDate = isStrictDateOnly(normalized.collectedDate);
   if (normalized.collectedDate && !validDate) {
-    errors.push(validationError(LAB_ROW_ERROR_CODES.INVALID_COLLECTED_DATE));
+    errors.push(
+      validationError(
+        LAB_ROW_ERROR_CODES.INVALID_COLLECTED_DATE,
+        "collected_date",
+      ),
+    );
   } else if (validDate && normalized.collectedDate > today) {
-    errors.push(validationError(LAB_ROW_ERROR_CODES.FUTURE_COLLECTED_DATE));
+    errors.push(
+      validationError(
+        LAB_ROW_ERROR_CODES.FUTURE_COLLECTED_DATE,
+        "collected_date",
+      ),
+    );
   }
 
   if (normalized.value && !isSafeDecimal(normalized.value)) {
-    errors.push(validationError(LAB_ROW_ERROR_CODES.INVALID_NUMERIC_VALUE));
+    errors.push(
+      validationError(LAB_ROW_ERROR_CODES.INVALID_NUMERIC_VALUE, "value"),
+    );
   }
 
   const patient = activePatientsByMrn.get(normalized.mrn);
   if (normalized.mrn && !patient) {
-    errors.push(validationError(LAB_ROW_ERROR_CODES.UNKNOWN_MRN));
+    errors.push(validationError(LAB_ROW_ERROR_CODES.UNKNOWN_MRN, "mrn"));
   }
 
   const test = activeTestsByCode.get(normalized.testCode);
   if (normalized.testCode && !test) {
-    errors.push(validationError(LAB_ROW_ERROR_CODES.UNKNOWN_TEST_CODE));
+    errors.push(
+      validationError(LAB_ROW_ERROR_CODES.UNKNOWN_TEST_CODE, "test_code"),
+    );
   }
 
   return { errors, patient, test };
