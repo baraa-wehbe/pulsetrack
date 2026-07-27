@@ -1,4 +1,6 @@
 import FhirSyncControl from "@/components/fhir-sync-control";
+import { STATUS_BADGE_RADIUS_CLASS } from "@/components/badge-styles";
+import PageHeader from "@/components/page-header";
 import { fhirConfiguration } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import { prisma } from "@/lib/prisma";
@@ -68,20 +70,12 @@ export default async function FhirSyncPage() {
   return (
     <section aria-labelledby="fhir-sync-heading">
       <div className="flex flex-wrap items-start justify-between gap-5">
-        <div className="max-w-3xl">
-          <p className="text-sm font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300">
-            {messages.clinicalIntegration}
-          </p>
-          <h1
-            className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white"
-            id="fhir-sync-heading"
-          >
-            {messages.fhirSyncHeading}
-          </h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">
-            {messages.fhirSyncDescription}
-          </p>
-        </div>
+        <PageHeader
+          description={messages.fhirSyncDescription}
+          descriptionClassName="max-w-3xl"
+          headingId="fhir-sync-heading"
+          title={messages.fhirSyncHeading}
+        />
       </div>
 
       <section
@@ -98,7 +92,7 @@ export default async function FhirSyncPage() {
                 {messages.integrationStatus}
               </h2>
               <span
-                className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-bold ${
+                className={`inline-flex border px-2.5 py-1 text-xs font-bold ${STATUS_BADGE_RADIUS_CLASS} ${
                   configured
                     ? "border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
                     : "border-amber-200 bg-amber-50 text-amber-950 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100"
@@ -193,7 +187,7 @@ export default async function FhirSyncPage() {
                       </p>
                     </div>
                     <span
-                      className={`rounded-md border px-2.5 py-1 text-xs font-bold ${status.className}`}
+                      className={`${STATUS_BADGE_RADIUS_CLASS} border px-2.5 py-1 text-xs font-bold ${status.className}`}
                     >
                       {status.label}
                     </span>

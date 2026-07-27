@@ -106,6 +106,36 @@ test("archive confirmation uses an accessible dialog and soft-delete endpoint", 
   assert.doesNotMatch(source, /method: "DELETE"/);
 });
 
+test("all dialog action footers share physical right alignment and primary-first order", async () => {
+  const [styles, patientForm, assessmentForm, archiveDialog] =
+    await Promise.all([
+      readSource("components/dialog-styles.js"),
+      readSource("components/patient-form.js"),
+      readSource("components/patient-assessment-form.js"),
+      readSource("components/archive-patient-button.js"),
+    ]);
+
+  assert.match(
+    styles,
+    /DIALOG_FOOTER_CLASS[\s\S]*justify-end[\s\S]*rtl:justify-start/,
+  );
+  for (const source of [patientForm, assessmentForm, archiveDialog]) {
+    assert.match(source, /DIALOG_FOOTER_CLASS/);
+  }
+  assert.ok(
+    patientForm.indexOf("messages.savePatient") <
+      patientForm.indexOf("messages.cancel"),
+  );
+  assert.ok(
+    assessmentForm.indexOf("messages.confirmSend") <
+      assessmentForm.indexOf("messages.cancel"),
+  );
+  assert.ok(
+    archiveDialog.indexOf("messages.confirmArchive") <
+      archiveDialog.indexOf("messages.cancel"),
+  );
+});
+
 test("patient list has responsive cards and a semantic table", async () => {
   const [source, filterSource] = await Promise.all([
     readSource("app/(private)/patients/page.js"),
@@ -170,10 +200,14 @@ test("patient filters navigate automatically with debounce and stale-request pro
   assert.match(filterSource, /\{ page: 1 \}/);
   assert.match(filterSource, /lastRequestedHrefRef/);
   assert.match(filterSource, /onChange=\{handleSearchChange\}/);
-  assert.equal(
-    filterSource.match(/onChange=\{handleSelectChange\}/g)?.length,
-    2,
+  assert.match(filterSource, /<CustomDropdown/);
+  assert.match(filterSource, /onValueChange=/);
+  assert.match(filterSource, /handleSelectChange\("pageSize", value\)/);
+  assert.match(
+    filterSource,
+    /\[name\]: name === "pageSize" \? Number\(value\) : value/,
   );
+  assert.doesNotMatch(filterSource, /<select|<option/);
   assert.match(filterSource, /value=\{filters\.search\}/);
   assert.match(filterSource, /href="\/patients"/);
   assert.match(filterSource, /onClick=\{handleClear\}/);
@@ -183,27 +217,44 @@ test("patient filters navigate automatically with debounce and stale-request pro
   assert.doesNotMatch(filterSource, /applyFilters|type="submit"/);
 });
 
-test("patient list actions and badges share one restrained control radius", async () => {
-  const [styles, page, filters, badge, modal, form, error] = await Promise.all([
+test("patient list actions use the shared pill control radius", async () => {
+  const [styles, page, filters, modal, form, error] = await Promise.all([
     readSource("components/control-styles.js"),
     readSource("app/(private)/patients/page.js"),
     readSource("components/patient-filters.js"),
-    readSource("components/patient-badge.js"),
     readSource("components/new-patient-modal.js"),
     readSource("components/patient-form.js"),
     readSource("app/(private)/patients/error.js"),
   ]);
 
-  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-lg"/);
-  for (const source of [page, filters, badge, modal, error]) {
+  assert.match(styles, /CONTROL_RADIUS_CLASS = "control-pill rounded-full"/);
+  for (const source of [page, filters, modal, error]) {
     assert.match(source, /CONTROL_RADIUS_CLASS/);
   }
   assert.match(page, /newPatientButtonClass[\s\S]*CONTROL_RADIUS_CLASS/);
   assert.equal(page.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 8);
   assert.match(modal, /controlRadiusClass=\{CONTROL_RADIUS_CLASS\}/);
-  assert.match(form, /controlRadiusClass = "rounded-lg"/);
+  assert.match(form, /controlRadiusClass = "rounded-full"/);
   assert.equal(form.match(/\$\{controlRadiusClass\}/g)?.length, 3);
-  assert.doesNotMatch(badge, /rounded-(?:sm|md|lg|xl|2xl|3xl)\b/);
+});
+
+test("all status badge renderers use the shared pill radius", async () => {
+  const [styles, ...badgeSources] = await Promise.all([
+    readSource("components/badge-styles.js"),
+    readSource("components/patient-badge.js"),
+    readSource("components/assessment-badge.js"),
+    readSource("app/(private)/fhir-sync/page.js"),
+    readSource("app/(private)/lab-uploads/page.js"),
+    readSource("app/(private)/lab-uploads/[importId]/page.js"),
+    readSource("app/(private)/dashboard/clinic/page.js"),
+    readSource("app/(private)/dashboard/patient/page.js"),
+  ]);
+
+  assert.match(styles, /STATUS_BADGE_RADIUS_CLASS = "rounded-full"/);
+  for (const source of badgeSources) {
+    assert.match(source, /STATUS_BADGE_RADIUS_CLASS/);
+    assert.doesNotMatch(source, /rounded-(?:none|sm|md)\b/);
+  }
 });
 
 test("FHIR badge mappings and list labels are centralized in English and Arabic", async () => {

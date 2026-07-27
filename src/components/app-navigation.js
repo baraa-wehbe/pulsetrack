@@ -1,13 +1,14 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
+import CustomDropdown from "@/components/custom-dropdown";
 import LogoutButton from "@/components/logout-button";
+import { navigationItemClass } from "@/components/navigation-styles";
 import PreferenceControls from "@/components/preference-controls";
 import {
   DASHBOARD_NAVIGATION,
@@ -16,17 +17,10 @@ import {
   PRIMARY_NAVIGATION,
 } from "@/lib/navigation";
 
-const desktopLinkClass = (active) =>
-  `${CONTROL_RADIUS_CLASS} px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
-    active
-      ? "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-200"
-      : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
-  }`;
-
 const MobileLink = ({ active, children, href, onSelect }) => (
   <Link
     aria-current={active ? "page" : undefined}
-    className={`block rounded-lg border-s-4 px-4 py-3 text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
+    className={`control-pill block rounded-full border-s-4 px-4 py-3 text-base font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
       active
         ? "border-teal-600 bg-teal-50 text-teal-900 dark:border-teal-400 dark:bg-teal-950 dark:text-teal-100"
         : "border-transparent text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -77,18 +71,6 @@ const CloseIcon = () => (
   </svg>
 );
 
-const ChevronIcon = () => (
-  <svg aria-hidden="true" className="size-4" fill="none" viewBox="0 0 24 24">
-    <path
-      d="m7 10 5 5 5-5"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="2"
-    />
-  </svg>
-);
-
 export default function AppNavigation({
   clinician,
   direction,
@@ -104,7 +86,7 @@ export default function AppNavigation({
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
       <div className="mx-auto flex min-h-16 max-w-screen-2xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
-          className="shrink-0 rounded-md text-lg font-bold tracking-tight text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300"
+          className="shrink-0 text-lg font-bold tracking-tight text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300"
           href="/"
         >
           {messages.brand}
@@ -120,7 +102,7 @@ export default function AppNavigation({
             return (
               <Link
                 aria-current={active ? "page" : undefined}
-                className={desktopLinkClass(active)}
+                className={navigationItemClass(active)}
                 href={href}
                 key={href}
               >
@@ -129,42 +111,18 @@ export default function AppNavigation({
             );
           })}
 
-          <DropdownMenu.Root dir={direction}>
-            <DropdownMenu.Trigger
-              aria-label={messages.openDashboardMenu}
-              className={`${desktopLinkClass(dashboardActive)} flex items-center gap-1`}
-            >
-              {messages.dashboard}
-              <ChevronIcon />
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Portal>
-              <DropdownMenu.Content
-                align="start"
-                className="z-50 min-w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl outline-none dark:border-slate-700 dark:bg-slate-900"
-                sideOffset={8}
-              >
-                {DASHBOARD_NAVIGATION.map(({ href, labelKey }) => {
-                  const active = isRouteActive(pathname, href);
-
-                  return (
-                    <DropdownMenu.Item asChild key={href}>
-                      <Link
-                        aria-current={active ? "page" : undefined}
-                        className={`block cursor-pointer rounded-lg px-3 py-2.5 text-sm outline-none focus:bg-teal-50 focus:text-teal-900 dark:focus:bg-teal-950 dark:focus:text-teal-100 ${
-                          active
-                            ? "bg-teal-50 font-semibold text-teal-900 dark:bg-teal-950 dark:text-teal-100"
-                            : "text-slate-700 dark:text-slate-200"
-                        }`}
-                        href={href}
-                      >
-                        {messages[labelKey]}
-                      </Link>
-                    </DropdownMenu.Item>
-                  );
-                })}
-              </DropdownMenu.Content>
-            </DropdownMenu.Portal>
-          </DropdownMenu.Root>
+          <CustomDropdown
+            active={dashboardActive}
+            ariaLabel={messages.openDashboardMenu}
+            direction={direction}
+            items={DASHBOARD_NAVIGATION.map(({ href, labelKey }) => ({
+              href,
+              label: messages[labelKey],
+              selected: isRouteActive(pathname, href),
+            }))}
+            triggerLabel={messages.dashboard}
+            variant="navigation"
+          />
         </nav>
 
         <div className="ms-auto hidden min-w-0 items-center gap-3 lg:flex">

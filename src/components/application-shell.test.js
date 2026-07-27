@@ -40,12 +40,17 @@ test("shell exposes an accessible skip link and stable main landmark", async () 
 });
 
 test("navigation uses semantic links, current-page state, and accessible Radix menus", async () => {
-  const source = await readSource("components/app-navigation.js");
+  const [source, dropdown] = await Promise.all([
+    readSource("components/app-navigation.js"),
+    readSource("components/custom-dropdown.js"),
+  ]);
 
   assert.match(source, /<nav/);
   assert.match(source, /<Link/);
   assert.match(source, /aria-current=/);
-  assert.match(source, /DropdownMenu\.Trigger/);
+  assert.match(source, /<CustomDropdown/);
+  assert.match(dropdown, /DropdownMenu\.Trigger/);
+  assert.match(dropdown, /DropdownMenu\.Content/);
   assert.match(source, /Dialog\.Trigger/);
   assert.match(source, /Dialog\.Close/);
   assert.match(source, /aria-label=\{messages\.openNavigation\}/);
@@ -53,6 +58,44 @@ test("navigation uses semantic links, current-page state, and accessible Radix m
   assert.match(source, /onClick=\{onSelect\}/);
   assert.equal(source.match(/PRIMARY_NAVIGATION\.map/g)?.length, 2);
   assert.equal(source.match(/DASHBOARD_NAVIGATION\.map/g)?.length, 2);
+});
+
+test("dashboard and patient filters share a custom menu with distinct triggers", async () => {
+  const [navigation, filters, dropdown, navigationStyles] = await Promise.all([
+    readSource("components/app-navigation.js"),
+    readSource("components/patient-filters.js"),
+    readSource("components/custom-dropdown.js"),
+    readSource("components/navigation-styles.js"),
+  ]);
+
+  assert.match(navigation, /variant="navigation"/);
+  assert.match(navigation, /active=\{dashboardActive\}/);
+  assert.match(navigationStyles, /navigationItemClass/);
+  assert.match(dropdown, /navigationItemClass\(active\)/);
+  assert.match(dropdown, /FILTER_CONTROL_CLASS/);
+  assert.match(dropdown, /DropdownMenu\.RadioGroup/);
+  assert.match(dropdown, /DropdownMenu\.RadioItem/);
+  assert.match(filters, /<CustomDropdown/);
+  assert.doesNotMatch(filters, /<select|<option/);
+});
+
+test("main application pages use eyebrow-free shared headers", async () => {
+  const sources = await Promise.all([
+    readSource("app/(private)/patients/page.js"),
+    readSource("app/(private)/lab-uploads/page.js"),
+    readSource("app/(private)/fhir-sync/page.js"),
+    readSource("app/(private)/dashboard/clinic/page.js"),
+    readSource("app/(private)/dashboard/patient/page.js"),
+  ]);
+
+  for (const source of sources) {
+    assert.match(source, /<PageHeader/);
+  }
+  assert.doesNotMatch(sources[0], /\{messages\.brand\}/);
+  assert.doesNotMatch(sources[1], /\{messages\.brand\}/);
+  assert.doesNotMatch(sources[2], /\{messages\.clinicalIntegration\}/);
+  assert.doesNotMatch(sources[3], /\{messages\.dashboard\}/);
+  assert.doesNotMatch(sources[4], /\{messages\.dashboard\}/);
 });
 
 test("shell sends only safe clinician fields to visible identity UI", async () => {
@@ -83,18 +126,26 @@ test("preference UI has accessible state and no client storage source", async ()
 });
 
 test("header buttons share the restrained control radius", async () => {
-  const [styles, navigationSource, preferenceSource, logoutSource] =
+  const [styles, globals, navigationSource, preferenceSource, logoutSource] =
     await Promise.all([
       readSource("components/control-styles.js"),
+      readSource("app/globals.css"),
       readSource("components/app-navigation.js"),
       readSource("components/preference-controls.js"),
       readSource("components/logout-button.js"),
     ]);
 
-  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-lg"/);
+  assert.match(styles, /CONTROL_RADIUS_CLASS = "control-pill rounded-full"/);
+  assert.match(globals, /--radius-control: 9999px/);
+  assert.match(globals, /input\[type="file"\]::file-selector-button/);
+  assert.match(globals, /border-radius: var\(--radius-control\) !important;/);
+  assert.match(
+    globals,
+    /button,\s*\.control-pill,[\s\S]*\[role="menuitem"\],[\s\S]*input\[type="submit"\]/,
+  );
   assert.equal(
     navigationSource.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length,
-    3,
+    2,
   );
   assert.equal(
     preferenceSource.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length,

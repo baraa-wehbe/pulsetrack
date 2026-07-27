@@ -16,7 +16,7 @@ export default async function LabImportNotFound() {
         {messages.labImportNotFoundDescription}
       </p>
       <Link
-        className="mt-6 inline-flex rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+        className="control-pill mt-6 inline-flex rounded-full bg-teal-700 px-4 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
         href="/lab-uploads"
       >
         {messages.backToLabUploads}

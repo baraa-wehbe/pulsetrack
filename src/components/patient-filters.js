@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
+import CustomDropdown from "@/components/custom-dropdown";
+import { FILTER_CONTROL_CLASS } from "@/components/filter-control-styles";
 import {
   buildPatientListHref,
   PATIENT_BADGE_MAPPINGS,
@@ -30,7 +32,7 @@ const toFilterState = (query) => ({
   pageSize: query.pageSize,
 });
 
-export default function PatientFilters({ messages, query }) {
+export default function PatientFilters({ direction, messages, query }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [filters, setFilters] = useState(() => toFilterState(query));
@@ -74,12 +76,11 @@ export default function PatientFilters({ messages, query }) {
     }, SEARCH_DEBOUNCE_MS);
   };
 
-  const handleSelectChange = (event) => {
+  const handleSelectChange = (name, value) => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
     }
-    const { name, value } = event.target;
     const next = {
       ...filtersRef.current,
       [name]: name === "pageSize" ? Number(value) : value,
@@ -123,7 +124,7 @@ export default function PatientFilters({ messages, query }) {
             {messages.searchPatients}
           </label>
           <input
-            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-950"
+            className={`mt-2 w-full ${FILTER_CONTROL_CLASS}`}
             id="patient-search"
             maxLength={100}
             name="search"
@@ -145,20 +146,27 @@ export default function PatientFilters({ messages, query }) {
             >
               {label}
             </label>
-            <select
-              className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-950"
-              id={`patient-${name}`}
-              name={name}
-              onChange={handleSelectChange}
-              value={filters[name]}
-            >
-              <option value="all">{messages.allOptions}</option>
-              {values.map((value) => (
-                <option key={value} value={value}>
-                  {filterLabel(messages, name, value)}
-                </option>
-              ))}
-            </select>
+            <div className="mt-2">
+              <CustomDropdown
+                direction={direction}
+                id={`patient-${name}`}
+                items={[
+                  { label: messages.allOptions, value: "all" },
+                  ...values.map((value) => ({
+                    label: filterLabel(messages, name, value),
+                    value,
+                  })),
+                ]}
+                name={name}
+                onValueChange={(value) => handleSelectChange(name, value)}
+                triggerLabel={
+                  filters[name] === "all"
+                    ? messages.allOptions
+                    : filterLabel(messages, name, filters[name])
+                }
+                value={filters[name]}
+              />
+            </div>
           </div>
         ))}
         <div>
@@ -168,19 +176,20 @@ export default function PatientFilters({ messages, query }) {
           >
             {messages.pageSize}
           </label>
-          <select
-            className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-950"
-            id="patient-page-size"
-            name="pageSize"
-            onChange={handleSelectChange}
-            value={String(filters.pageSize)}
-          >
-            {PATIENT_PAGE_SIZE_VALUES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
+          <div className="mt-2">
+            <CustomDropdown
+              direction={direction}
+              id="patient-page-size"
+              items={PATIENT_PAGE_SIZE_VALUES.map((value) => ({
+                label: String(value),
+                value: String(value),
+              }))}
+              name="pageSize"
+              onValueChange={(value) => handleSelectChange("pageSize", value)}
+              triggerLabel={String(filters.pageSize)}
+              value={String(filters.pageSize)}
+            />
+          </div>
         </div>
       </div>
       <div className="mt-4 flex justify-end rtl:justify-start">

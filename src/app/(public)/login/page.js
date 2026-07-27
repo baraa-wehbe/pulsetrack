@@ -27,10 +27,7 @@ export default async function LoginPage({ searchParams }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-10">
       <section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-        <p className="text-sm font-medium text-teal-700 dark:text-teal-300">
-          {messages.brand}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
           {messages.clinicianLogin}
         </h1>
         <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">

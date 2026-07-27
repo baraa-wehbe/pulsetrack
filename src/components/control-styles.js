@@ -1,1 +1,1 @@
-export const CONTROL_RADIUS_CLASS = "rounded-lg";
+export const CONTROL_RADIUS_CLASS = "control-pill rounded-full";

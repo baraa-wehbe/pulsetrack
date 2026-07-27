@@ -77,7 +77,7 @@ export default async function PatientDetailsPage({ params, searchParams }) {
   return (
     <section aria-labelledby="patient-heading">
       <Link
-        className="rounded-md text-sm font-semibold text-teal-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
+        className="text-sm font-semibold text-teal-700 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
         href={returnTo}
       >
         {messages.backToPatients}
@@ -104,16 +104,16 @@ export default async function PatientDetailsPage({ params, searchParams }) {
               messages={messages}
               mode="IMMEDIATE"
               patient={patient}
-              triggerClassName="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              triggerClassName="control-pill rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
             />
             <PatientAssessmentModal
               messages={messages}
               mode="SCHEDULED"
               patient={patient}
-              triggerClassName="rounded-lg border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
+              triggerClassName="control-pill rounded-full border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
             />
             <Link
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+              className="control-pill rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               href={`/patients/${patient.id}/edit`}
             >
               {messages.editPatient}

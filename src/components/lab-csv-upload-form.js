@@ -78,7 +78,7 @@ export default function LabCsvUploadForm({ maximumBytes, messages }) {
           accept=".csv,text/csv"
           aria-describedby="lab-csv-help lab-csv-error"
           aria-invalid={Boolean(error)}
-          className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 file:me-3 file:rounded-md file:border-0 file:bg-teal-50 file:px-3 file:py-2 file:font-semibold file:text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:file:bg-teal-950 dark:file:text-teal-200"
+          className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 file:me-3 file:rounded-full file:border-0 file:bg-teal-50 file:px-3 file:py-2 file:font-semibold file:text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:file:bg-teal-950 dark:file:text-teal-200"
           id="lab-csv-file"
           name="file"
           onChange={(event) => setFile(event.target.files?.[0] ?? null)}
@@ -102,7 +102,7 @@ export default function LabCsvUploadForm({ maximumBytes, messages }) {
         )}
       </div>
       <button
-        className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-full bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={pending}
         type="submit"
       >

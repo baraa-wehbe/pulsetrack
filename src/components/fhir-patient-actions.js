@@ -40,7 +40,7 @@ export default function FhirPatientActions({
       <div className="flex flex-wrap gap-2">
         {!externallyOwned && (
           <button
-            className="rounded-lg border border-teal-700 px-3 py-2 text-sm font-semibold text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-50 dark:border-teal-400 dark:text-teal-200"
+            className="rounded-full border border-teal-700 px-3 py-2 text-sm font-semibold text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-50 dark:border-teal-400 dark:text-teal-200"
             disabled={!configured || pending}
             onClick={() => invoke("POST")}
             type="button"
@@ -49,7 +49,7 @@ export default function FhirPatientActions({
           </button>
         )}
         <button
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
+          className="rounded-full border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200"
           disabled={pending}
           onClick={() => invoke("GET")}
           type="button"

@@ -117,7 +117,7 @@ export default function PublicAssessmentForm({ messages, questionnaire }) {
       )}
 
       <button
-        className="w-full rounded-lg bg-teal-700 px-5 py-3 font-bold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        className="w-full rounded-full bg-teal-700 px-5 py-3 font-bold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         disabled={pending}
         type="submit"
       >

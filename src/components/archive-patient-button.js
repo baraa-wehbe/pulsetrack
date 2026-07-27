@@ -3,6 +3,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 
+import { DIALOG_FOOTER_CLASS } from "@/components/dialog-styles";
+
 export default function ArchivePatientButton({ messages, patientIdentifier }) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +43,7 @@ export default function ArchivePatientButton({ messages, patientIdentifier }) {
     <Dialog.Root onOpenChange={setOpen} open={open}>
       <Dialog.Trigger asChild>
         <button
-          className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+          className="rounded-full border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
           type="button"
         >
           {messages.archivePatient}
@@ -64,24 +66,24 @@ export default function ArchivePatientButton({ messages, patientIdentifier }) {
               {error}
             </p>
           ) : null}
-          <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <Dialog.Close asChild>
-              <button
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                disabled={submitting}
-                type="button"
-              >
-                {messages.cancel}
-              </button>
-            </Dialog.Close>
+          <div className={`mt-6 ${DIALOG_FOOTER_CLASS}`}>
             <button
-              className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-wait disabled:opacity-60"
+              className="rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-wait disabled:opacity-60"
               disabled={submitting}
               onClick={archive}
               type="button"
             >
               {submitting ? messages.archiving : messages.confirmArchive}
             </button>
+            <Dialog.Close asChild>
+              <button
+                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                disabled={submitting}
+                type="button"
+              >
+                {messages.cancel}
+              </button>
+            </Dialog.Close>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

@@ -36,7 +36,7 @@ export default function PatientDashboardError({ reset }) {
         <LocalizedText messageKey="patientDashboardErrorDescription" />
       </p>
       <button
-        className="mt-6 rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+        className="mt-6 rounded-full bg-teal-700 px-4 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
         onClick={reset}
         type="button"
       >

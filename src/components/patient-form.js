@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { DIALOG_FOOTER_CLASS } from "@/components/dialog-styles";
 import {
   createPatientSchemaForDate,
   getFieldErrors,
@@ -41,7 +42,7 @@ const fieldDescription = (name, fieldErrors) =>
   fieldErrors[name] ? `${name}-hint ${name}-error` : `${name}-hint`;
 
 export default function PatientForm({
-  controlRadiusClass = "rounded-lg",
+  controlRadiusClass = "rounded-full",
   initialPatient,
   messages,
   mode,
@@ -355,7 +356,9 @@ export default function PatientForm({
         </p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 pt-6 dark:border-slate-800">
+      <div
+        className={`${DIALOG_FOOTER_CLASS} border-t border-slate-200 pt-6 dark:border-slate-800`}
+      >
         <button
           className={`${controlRadiusClass} bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-wait disabled:opacity-60 dark:bg-teal-700 dark:hover:bg-teal-600`}
           disabled={submitting}

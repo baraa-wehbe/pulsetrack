@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import AssessmentBadge from "@/components/assessment-badge";
+import { STATUS_BADGE_RADIUS_CLASS } from "@/components/badge-styles";
+import PageHeader from "@/components/page-header";
 import TimeSeriesChart from "@/components/time-series-chart";
 import { getTranslations } from "@/i18n/translations";
 import { parsePatientDashboardQuery } from "@/lib/patient-dashboard";
@@ -47,7 +49,7 @@ const ReferenceBadge = ({ messages, state }) => {
 
   return presentation ? (
     <span
-      className={`rounded-full px-3 py-1 text-xs font-bold ${presentation[1]}`}
+      className={`${STATUS_BADGE_RADIUS_CLASS} px-3 py-1 text-xs font-bold ${presentation[1]}`}
     >
       {presentation[0]}
     </span>
@@ -210,20 +212,11 @@ export default async function PatientDashboardPage({ searchParams }) {
   return (
     <section aria-labelledby="patient-dashboard-heading">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-            {messages.dashboard}
-          </p>
-          <h1
-            className="mt-1 text-3xl font-bold tracking-tight text-slate-950 dark:text-white"
-            id="patient-dashboard-heading"
-          >
-            {messages.patientDashboardHeading}
-          </h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">
-            {messages.patientDashboardDescription}
-          </p>
-        </div>
+        <PageHeader
+          description={messages.patientDashboardDescription}
+          headingId="patient-dashboard-heading"
+          title={messages.patientDashboardHeading}
+        />
       </div>
 
       <form
@@ -254,7 +247,7 @@ export default async function PatientDashboardPage({ searchParams }) {
             ))}
           </select>
           <button
-            className="rounded-lg bg-teal-700 px-5 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+            className="rounded-full bg-teal-700 px-5 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
             type="submit"
           >
             {messages.viewDashboard}
@@ -271,7 +264,7 @@ export default async function PatientDashboardPage({ searchParams }) {
             {messages.noDashboardPatientsDescription}
           </p>
           <Link
-            className="mt-5 inline-block rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white"
+            className="control-pill mt-5 inline-block rounded-full bg-teal-700 px-4 py-2 font-semibold text-white"
             href="/patients"
           >
             {messages.newPatient}

@@ -13,7 +13,8 @@
   --clinical-primary: #0f766e;
   --clinical-primary-strong: #115e59;
   --focus-ring: #0d9488;
-  --radius-control: 0.5rem;
+  --radius-control: 9999px;
+  --radius-field: 0.5rem;
   --radius-panel: 0.75rem;
   --shadow-panel: 0 1px 2px rgb(15 23 42 / 0.06);
 }
@@ -61,6 +62,22 @@ body {
 :focus-visible {
   outline-color: var(--focus-ring);
   scroll-margin-block: 6rem;
+}
+
+button,
+.control-pill,
+[role="button"],
+[role="tab"],
+[role="menuitem"],
+input[type="button"],
+input[type="reset"],
+input[type="submit"],
+input[type="file"]::file-selector-button {
+  border-radius: var(--radius-control) !important;
+}
+
+.filter-control {
+  border-radius: var(--radius-field) !important;
 }
 
 button:not(:disabled),

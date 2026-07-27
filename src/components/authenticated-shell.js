@@ -11,7 +11,7 @@ export default function AuthenticatedShell({
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
       <a
-        className="fixed start-4 top-3 z-[100] -translate-y-20 rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-lg transition focus:translate-y-0 focus:outline-2 focus:outline-offset-2 focus:outline-teal-300"
+        className="control-pill fixed start-4 top-3 z-[100] -translate-y-20 rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-lg transition focus:translate-y-0 focus:outline-2 focus:outline-offset-2 focus:outline-teal-300"
         href="#main-content"
       >
         {messages.skipToContent}

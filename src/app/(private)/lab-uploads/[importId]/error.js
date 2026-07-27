@@ -38,14 +38,14 @@ export default function LabImportDetailError({ reset }) {
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <button
-          className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+          className="rounded-full bg-teal-700 px-4 py-2 font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
           onClick={reset}
           type="button"
         >
           <LocalizedText messageKey="retry" />
         </button>
         <Link
-          className="rounded-lg border border-slate-300 px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700"
+          className="control-pill rounded-full border border-slate-300 px-4 py-2 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700"
           href="/lab-uploads"
         >
           <LocalizedText messageKey="backToLabUploads" />

@@ -1,3 +1,4 @@
+import { STATUS_BADGE_RADIUS_CLASS } from "@/components/badge-styles";
 import {
   getAssessmentStatusPresentation,
   getRiskPresentation,
@@ -24,7 +25,7 @@ export default function AssessmentBadge({ kind, messages, value }) {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${variants[presentation.variant]}`}
+      className={`inline-flex border px-2.5 py-1 text-xs font-bold ${STATUS_BADGE_RADIUS_CLASS} ${variants[presentation.variant]}`}
     >
       {messages[presentation.translationKey]}
     </span>

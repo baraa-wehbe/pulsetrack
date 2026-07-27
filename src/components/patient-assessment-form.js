@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import { DIALOG_FOOTER_CLASS } from "@/components/dialog-styles";
 import { createAssessmentRequestSchemaForDate } from "@/lib/assessment-validation";
 
 const localTimestampToIso = (value) => {
@@ -159,9 +160,9 @@ export default function PatientAssessmentForm({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-3">
+      <div className={DIALOG_FOOTER_CLASS}>
         <button
-          className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={pending || !hasEmail}
           type="submit"
         >
@@ -172,7 +173,7 @@ export default function PatientAssessmentForm({
               : messages.confirmSend}
         </button>
         <button
-          className="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="rounded-full border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
           disabled={pending}
           onClick={onCancel}
           type="button"

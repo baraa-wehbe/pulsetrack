@@ -2,10 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import NewPatientModal from "@/components/new-patient-modal";
+import PageHeader from "@/components/page-header";
 import PatientAssessmentModal from "@/components/patient-assessment-modal";
 import PatientBadge from "@/components/patient-badge";
 import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 import PatientFilters from "@/components/patient-filters";
+import { getDocumentDirection } from "@/config/preferences";
 import { fhirConfiguration } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import {
@@ -54,7 +56,7 @@ const PatientActions = ({ messages, patient }) => (
 const MrnLink = ({ listQuery, messages, patient }) => (
   <Link
     aria-label={`${messages.viewPatientMrn} ${patient.mrn}`}
-    className="font-semibold text-teal-700 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
+    className="font-semibold text-teal-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
     href={buildPatientDetailHref(patient.id, listQuery)}
   >
     <bdi dir="ltr">{patient.mrn}</bdi>
@@ -138,20 +140,11 @@ export default async function PatientsPage({ searchParams }) {
   return (
     <section aria-labelledby="patients-heading">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-            {messages.brand}
-          </p>
-          <h1
-            className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white"
-            id="patients-heading"
-          >
-            {messages.patientsHeading}
-          </h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">
-            {messages.patientsDescription}
-          </p>
-        </div>
+        <PageHeader
+          description={messages.patientsDescription}
+          headingId="patients-heading"
+          title={messages.patientsHeading}
+        />
         <NewPatientModal
           messages={messages}
           today={today}
@@ -160,6 +153,7 @@ export default async function PatientsPage({ searchParams }) {
       </div>
 
       <PatientFilters
+        direction={getDocumentDirection(language)}
         key={buildPatientListHref(query)}
         messages={messages}
         query={query}

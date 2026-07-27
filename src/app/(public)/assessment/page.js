@@ -19,10 +19,7 @@ const Unavailable = ({ messages }) => (
     className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900"
     role="alert"
   >
-    <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-      {messages.brand}
-    </p>
-    <h1 className="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
+    <h1 className="text-3xl font-bold text-slate-950 dark:text-white">
       {messages.publicAssessmentUnavailableTitle}
     </h1>
     <p className="mt-3 text-slate-600 dark:text-slate-300">
@@ -68,10 +65,7 @@ export default async function PublicAssessmentPage() {
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl px-5 py-10 sm:px-8">
       <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
-        <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-          {messages.brand}
-        </p>
-        <h1 className="mt-2 text-3xl font-bold text-slate-950 dark:text-white">
+        <h1 className="text-3xl font-bold text-slate-950 dark:text-white">
           <bdi dir="auto">{assessment.questionnaire.title}</bdi>
         </h1>
         <p className="mt-3 text-slate-600 dark:text-slate-300">

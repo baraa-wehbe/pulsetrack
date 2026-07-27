@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { STATUS_BADGE_RADIUS_CLASS } from "@/components/badge-styles";
 import { getTranslations } from "@/i18n/translations";
 import {
   buildLabImportDetailHref,
@@ -35,7 +36,7 @@ const formatTimestamp = (value, language) =>
 
 const Badge = ({ messages, presentation }) => (
   <span
-    className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${presentation.className}`}
+    className={`inline-flex border px-2.5 py-1 text-xs font-bold ${STATUS_BADGE_RADIUS_CLASS} ${presentation.className}`}
   >
     {messages[presentation.translationKey]}
   </span>
@@ -108,11 +109,8 @@ export default async function LabImportDetailPage({ params, searchParams }) {
       <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-              {messages.labImportValidation}
-            </p>
             <h1
-              className="mt-2 break-words text-3xl font-bold text-slate-950 dark:text-white"
+              className="break-words text-3xl font-bold text-slate-950 dark:text-white"
               id="lab-import-detail-heading"
             >
               <bdi dir="ltr">{labImport.originalFileName}</bdi>
@@ -125,7 +123,7 @@ export default async function LabImportDetailPage({ params, searchParams }) {
           <div className="flex flex-wrap items-center gap-3">
             <Badge messages={messages} presentation={importStatus} />
             <a
-              className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+              className="control-pill rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
               download
               href={`/api/private/lab-imports/${encodeURIComponent(labImport.id)}/report`}
             >
@@ -161,7 +159,7 @@ export default async function LabImportDetailPage({ params, searchParams }) {
         {filters.map(([value, label, count]) => (
           <Link
             aria-current={filter === value ? "page" : undefined}
-            className={`rounded-full border px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
+            className={`control-pill rounded-full border px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
               filter === value
                 ? "border-teal-700 bg-teal-700 text-white"
                 : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"

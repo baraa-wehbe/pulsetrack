@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import LabCsvUploadForm from "@/components/lab-csv-upload-form";
+import { STATUS_BADGE_RADIUS_CLASS } from "@/components/badge-styles";
+import PageHeader from "@/components/page-header";
 import { env } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import { getLabImportStatusPresentation } from "@/lib/lab-import-presentation";
@@ -24,7 +26,7 @@ const StatusBadge = ({ messages, status }) => {
 
   return (
     <span
-      className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${presentation.className}`}
+      className={`inline-flex border px-2.5 py-1 text-xs font-bold ${STATUS_BADGE_RADIUS_CLASS} ${presentation.className}`}
     >
       {messages[presentation.translationKey]}
     </span>
@@ -42,22 +44,14 @@ export default async function LabUploadsPage() {
   return (
     <section aria-labelledby="lab-uploads-heading">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-            {messages.brand}
-          </p>
-          <h1
-            className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white"
-            id="lab-uploads-heading"
-          >
-            {messages.labUploadsHeading}
-          </h1>
-          <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-300">
-            {messages.labUploadsDescription}
-          </p>
-        </div>
+        <PageHeader
+          description={messages.labUploadsDescription}
+          descriptionClassName="max-w-3xl"
+          headingId="lab-uploads-heading"
+          title={messages.labUploadsHeading}
+        />
         <a
-          className="rounded-lg border border-teal-700 px-4 py-2 font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
+          className="control-pill rounded-full border border-teal-700 px-4 py-2 font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
           download
           href="/api/private/lab-imports/template"
         >
