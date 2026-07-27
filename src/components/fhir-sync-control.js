@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import InlineSpinner from "@/components/inline-spinner";
+
 export default function FhirSyncControl({ configured, messages }) {
   const router = useRouter();
   const [feedback, setFeedback] = useState("");
@@ -46,11 +48,15 @@ export default function FhirSyncControl({ configured, messages }) {
   return (
     <div>
       <button
-        className="inline-flex min-h-12 items-center justify-center rounded-full bg-teal-700 px-5 py-3 text-base font-bold text-white shadow-sm transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-55 dark:bg-teal-700 dark:hover:bg-teal-600"
+        aria-busy={pending}
+        className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-teal-700 px-5 py-3 text-base font-bold text-white shadow-sm transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-70 dark:bg-teal-700 dark:hover:bg-teal-600 ${
+          pending ? "syncing-signal" : ""
+        }`}
         disabled={!configured || pending}
         onClick={synchronize}
         type="button"
       >
+        {pending ? <InlineSpinner /> : null}
         {pending ? messages.fhirSynchronizing : messages.synchronizeFhirData}
       </button>
       {feedback ? (

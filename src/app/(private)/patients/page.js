@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import AssessmentBadge from "@/components/assessment-badge";
 import NewPatientModal from "@/components/new-patient-modal";
 import PageHeader from "@/components/page-header";
 import PatientAssessmentModal from "@/components/patient-assessment-modal";
@@ -8,7 +9,6 @@ import PatientBadge from "@/components/patient-badge";
 import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 import PatientFilters from "@/components/patient-filters";
 import { getDocumentDirection } from "@/config/preferences";
-import { fhirConfiguration } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import {
   buildPatientDetailHref,
@@ -241,14 +241,10 @@ export default async function PatientsPage({ searchParams }) {
                     messages={messages}
                     value={patient.fhirOwnership}
                   />
-                  <PatientBadge
-                    kind="syncStatus"
+                  <AssessmentBadge
+                    kind="status"
                     messages={messages}
-                    value={
-                      fhirConfiguration.enabled
-                        ? patient.fhirSyncStatus
-                        : "NOT_CONFIGURED"
-                    }
+                    value={patient.assessmentStatus}
                   />
                 </div>
               </article>
@@ -268,7 +264,7 @@ export default async function PatientsPage({ searchParams }) {
                     messages.patientDetails,
                     messages.origin,
                     messages.ownership,
-                    messages.syncStatus,
+                    messages.assessmentStatus,
                   ].map((heading) => (
                     <th
                       className="px-3 py-3 text-start font-semibold"
@@ -323,14 +319,10 @@ export default async function PatientsPage({ searchParams }) {
                       />
                     </td>
                     <td className="px-3 py-4">
-                      <PatientBadge
-                        kind="syncStatus"
+                      <AssessmentBadge
+                        kind="status"
                         messages={messages}
-                        value={
-                          fhirConfiguration.enabled
-                            ? patient.fhirSyncStatus
-                            : "NOT_CONFIGURED"
-                        }
+                        value={patient.assessmentStatus}
                       />
                     </td>
                     <td className="px-3 py-4">

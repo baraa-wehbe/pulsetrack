@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import InlineSpinner from "@/components/inline-spinner";
+
 const ERROR_MESSAGE_KEYS = Object.freeze({
   FILE_REQUIRED: "labUploadFileRequired",
   CSV_REQUIRED: "labUploadCsvRequired",
@@ -102,10 +104,12 @@ export default function LabCsvUploadForm({ maximumBytes, messages }) {
         )}
       </div>
       <button
-        className="rounded-full bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
+        aria-busy={pending}
+        className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={pending}
         type="submit"
       >
+        {pending ? <InlineSpinner /> : null}
         {pending ? messages.labUploading : messages.labUploadButton}
       </button>
     </form>

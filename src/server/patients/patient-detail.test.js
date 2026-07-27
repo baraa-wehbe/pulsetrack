@@ -39,13 +39,23 @@ const rawPatient = {
         code: "dsma-8",
         version: "1.0",
         title: "Diabetes Self-Management Assessment (DSMA-8)",
-        definition: { scoring: { max: 24 } },
+        definition: {
+          items: [
+            { id: "q1", text: "How often do you follow your meal plan?" },
+            { id: "q2", text: "How often do you monitor glucose?" },
+          ],
+          options: [
+            { value: 0, label: "Never" },
+            { value: 2, label: "Often" },
+          ],
+          scoring: { max: 24 },
+        },
       },
       response: {
         totalScore: 15,
         riskBand: "HIGH",
         submittedAt: new Date("2026-07-20T09:00:00.000Z"),
-        answers: { secret: "must-not-serialize" },
+        answers: { q1: 2, q2: 0, secret: "must-not-serialize" },
         scoringSnapshot: { secret: "must-not-serialize" },
       },
     },
@@ -74,6 +84,17 @@ test("active patient detail uses normalized MRN and safe newest-first selection"
   assert.equal(patient.assessments[0].response.totalScore, 15);
   assert.equal(patient.assessments[0].response.scoreMaximum, 24);
   assert.equal(patient.assessments[0].response.riskBand, "HIGH");
+  assert.deepEqual(patient.assessments[0].response.questionResponses, [
+    {
+      question: "How often do you follow your meal plan?",
+      answer: "Often",
+    },
+    {
+      question: "How often do you monitor glucose?",
+      answer: "Never",
+    },
+  ]);
+  assert.equal(query.select.assessments.select.response.select.answers, true);
   const serialized = JSON.stringify(patient);
   for (const sensitive of [
     "tokenHash",
@@ -98,6 +119,10 @@ test("unknown or archived MRNs resolve to no active patient detail", async () =>
 
 test("assessment status and risk mappings cover stored schema values safely", () => {
   assert.equal(
+    getAssessmentStatusPresentation("NOT_SENT").translationKey,
+    "assessmentNotSent",
+  );
+  assert.equal(
     getAssessmentStatusPresentation("COMPLETED").translationKey,
     "assessmentCompleted",
   );
@@ -110,12 +135,14 @@ test("assessment status and risk mappings cover stored schema values safely", ()
 });
 
 test("detail page handles 404s, demographics, history, empty, lab, and safe props", async () => {
-  const [page, serialization, loading, error] = await Promise.all([
-    readSource("app/(private)/patients/[patientId]/page.js"),
-    readSource("server/patients/serialization.js"),
-    readSource("app/(private)/patients/[patientId]/loading.js"),
-    readSource("app/(private)/patients/[patientId]/error.js"),
-  ]);
+  const [page, serialization, loading, sharedLoading, error] =
+    await Promise.all([
+      readSource("app/(private)/patients/[patientId]/page.js"),
+      readSource("server/patients/serialization.js"),
+      readSource("app/(private)/patients/[patientId]/loading.js"),
+      readSource("components/route-loading.js"),
+      readSource("app/(private)/patients/[patientId]/error.js"),
+    ]);
 
   assert.match(page, /patientIdentifierRouteParamsSchema/);
   assert.match(page, /getActivePatientDetailByIdentifier/);
@@ -124,14 +151,24 @@ test("detail page handles 404s, demographics, history, empty, lab, and safe prop
   assert.match(page, /demographics-heading/);
   assert.match(page, /assessment-history-heading/);
   assert.match(page, /getAssessmentTimelineEntries\(assessment\)/);
+  assert.match(page, /<details/);
+  assert.match(page, /assessmentQuestionResponses/);
+  assert.match(page, /assessment\.response\.questionResponses/);
+  assert.ok(
+    page.indexOf("assessmentQuestionResponses") < page.indexOf("dsmaScore"),
+  );
   assert.match(page, /noAssessmentsTitle/);
   assert.match(page, /dsmaScore/);
   assert.match(page, /riskLevel/);
   assert.match(page, /lab-summary-heading/);
   assert.match(page, /patient\.id/);
-  assert.doesNotMatch(page, /tokenHash|recipientEmail|scoringSnapshot|answers/);
+  assert.doesNotMatch(
+    page,
+    /tokenHash|recipientEmail|scoringSnapshot|response\.answers/,
+  );
   assert.doesNotMatch(serialization, /PATIENT_DETAIL_SELECT[\s\S]*tokenHash/);
-  assert.match(loading, /role="status"/);
+  assert.match(loading, /<RouteLoading/);
+  assert.match(sharedLoading, /role="status"/);
   assert.match(error, /role="alert"/);
   assert.doesNotMatch(error, /error\.message/);
 });

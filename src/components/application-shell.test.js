@@ -151,7 +151,10 @@ test("header buttons share the restrained control radius", async () => {
     preferenceSource.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length,
     2,
   );
-  assert.match(logoutSource, /\$\{CONTROL_RADIUS_CLASS\} border/);
+  assert.match(
+    logoutSource,
+    /\$\{CONTROL_RADIUS_CLASS\}[\s\S]*border border-slate-300/,
+  );
   assert.match(preferenceSource, /aria-pressed:bg-white/);
   assert.match(preferenceSource, /dark:aria-pressed:bg-slate-700/);
 });

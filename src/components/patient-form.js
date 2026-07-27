@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { DIALOG_FOOTER_CLASS } from "@/components/dialog-styles";
+import InlineSpinner from "@/components/inline-spinner";
 import {
   createPatientSchemaForDate,
   getFieldErrors,
@@ -360,10 +361,12 @@ export default function PatientForm({
         className={`${DIALOG_FOOTER_CLASS} border-t border-slate-200 pt-6 dark:border-slate-800`}
       >
         <button
-          className={`${controlRadiusClass} bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-wait disabled:opacity-60 dark:bg-teal-700 dark:hover:bg-teal-600`}
+          aria-busy={submitting}
+          className={`${controlRadiusClass} inline-flex items-center gap-2 bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-wait disabled:opacity-60 dark:bg-teal-700 dark:hover:bg-teal-600`}
           disabled={submitting}
           type="submit"
         >
+          {submitting ? <InlineSpinner /> : null}
           {submitting ? messages.savingPatient : messages.savePatient}
         </button>
         {onCancel ? (

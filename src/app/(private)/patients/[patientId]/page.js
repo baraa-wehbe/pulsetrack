@@ -272,41 +272,100 @@ export default async function PatientDetailsPage({ params, searchParams }) {
                   )}
 
                   {assessment.response ? (
-                    <div className="mt-5 grid gap-4 sm:grid-cols-[auto_1fr]">
-                      <div className="rounded-xl bg-slate-100 px-5 py-4 text-center dark:bg-slate-800">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                          {messages.dsmaScore}
-                        </p>
-                        <p className="mt-1 text-3xl font-black text-slate-950 dark:text-white">
-                          <bdi dir="ltr">
-                            {assessment.response.totalScore}
-                            {assessment.response.scoreMaximum === null
-                              ? ""
-                              : ` / ${assessment.response.scoreMaximum}`}
-                          </bdi>
-                        </p>
-                      </div>
-                      <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/70">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold">
-                            {messages.riskLevel}:
+                    <div className="mt-5">
+                      <details className="group rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70">
+                        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-white">
+                          <span>{messages.assessmentQuestionResponses}</span>
+                          <span
+                            aria-hidden="true"
+                            className="text-slate-500 transition group-open:rotate-180 dark:text-slate-400"
+                          >
+                            <svg
+                              className="size-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="m7 10 5 5 5-5"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                              />
+                            </svg>
                           </span>
-                          <AssessmentBadge
-                            kind="risk"
-                            messages={messages}
-                            value={assessment.response.riskBand}
-                          />
-                        </div>
-                        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                          {messages[risk.guidanceKey]}
-                        </p>
-                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                          {messages.submitted}{" "}
-                          {formatTimestamp(
-                            assessment.response.submittedAt,
-                            language,
+                        </summary>
+                        <div className="border-t border-slate-200 px-4 py-4 dark:border-slate-700">
+                          {assessment.response.questionResponses.length > 0 ? (
+                            <ol className="space-y-4">
+                              {assessment.response.questionResponses.map(
+                                (response, responseIndex) => (
+                                  <li
+                                    className="grid gap-1 text-sm"
+                                    key={`${assessment.createdAt}-response-${responseIndex}`}
+                                  >
+                                    <p className="font-semibold text-slate-900 dark:text-white">
+                                      <span className="me-1 text-slate-500 dark:text-slate-400">
+                                        {responseIndex + 1}.
+                                      </span>
+                                      <span dir="auto">
+                                        {response.question}
+                                      </span>
+                                    </p>
+                                    <p className="text-slate-600 dark:text-slate-300">
+                                      <span className="font-semibold">
+                                        {messages.answerLabel}:
+                                      </span>{" "}
+                                      <span dir="auto">{response.answer}</span>
+                                    </p>
+                                  </li>
+                                ),
+                              )}
+                            </ol>
+                          ) : (
+                            <p className="text-sm text-slate-600 dark:text-slate-300">
+                              {messages.assessmentResponsesUnavailable}
+                            </p>
                           )}
-                        </p>
+                        </div>
+                      </details>
+
+                      <div className="mt-4 grid gap-4 sm:grid-cols-[auto_1fr]">
+                        <div className="rounded-xl bg-slate-100 px-5 py-4 text-center dark:bg-slate-800">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                            {messages.dsmaScore}
+                          </p>
+                          <p className="mt-1 text-3xl font-black text-slate-950 dark:text-white">
+                            <bdi dir="ltr">
+                              {assessment.response.totalScore}
+                              {assessment.response.scoreMaximum === null
+                                ? ""
+                                : ` / ${assessment.response.scoreMaximum}`}
+                            </bdi>
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/70">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold">
+                              {messages.riskLevel}:
+                            </span>
+                            <AssessmentBadge
+                              kind="risk"
+                              messages={messages}
+                              value={assessment.response.riskBand}
+                            />
+                          </div>
+                          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                            {messages[risk.guidanceKey]}
+                          </p>
+                          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            {messages.submitted}{" "}
+                            {formatTimestamp(
+                              assessment.response.submittedAt,
+                              language,
+                            )}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   ) : (

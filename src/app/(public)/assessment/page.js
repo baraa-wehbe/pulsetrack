@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 
+import BrandMark from "@/components/brand-mark";
 import PublicAssessmentForm from "@/components/public-assessment-form";
 import { ASSESSMENT_ACCESS_COOKIE_NAME } from "@/config/assessment-access";
 import { env } from "@/config/env.mjs";
@@ -40,7 +41,7 @@ export default async function PublicAssessmentPage() {
   );
   if (!access) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-5 py-10">
+      <main className="app-main flex min-h-screen items-center justify-center px-5 py-10">
         <Unavailable messages={messages} />
       </main>
     );
@@ -56,15 +57,19 @@ export default async function PublicAssessmentPage() {
   }
   if (!assessment) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-5 py-10">
+      <main className="app-main flex min-h-screen items-center justify-center px-5 py-10">
         <Unavailable messages={messages} />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-4xl px-5 py-10 sm:px-8">
+    <main className="app-main mx-auto min-h-screen w-full max-w-4xl px-5 py-8 sm:px-8 sm:py-12">
       <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
+        <div className="brand-lockup mb-7">
+          <BrandMark />
+          <span className="font-black">{messages.brand}</span>
+        </div>
         <h1 className="text-3xl font-bold text-slate-950 dark:text-white">
           <bdi dir="auto">{assessment.questionnaire.title}</bdi>
         </h1>

@@ -4,9 +4,13 @@ const UNKNOWN_PRESENTATION = Object.freeze({
 });
 
 export const ASSESSMENT_STATUS_PRESENTATIONS = Object.freeze({
+  NOT_SENT: Object.freeze({
+    translationKey: "assessmentNotSent",
+    variant: "neutral",
+  }),
   SCHEDULED: Object.freeze({
     translationKey: "assessmentScheduled",
-    variant: "blue",
+    variant: "amber",
   }),
   SENT: Object.freeze({
     translationKey: "assessmentSent",
@@ -18,7 +22,7 @@ export const ASSESSMENT_STATUS_PRESENTATIONS = Object.freeze({
   }),
   EXPIRED: Object.freeze({
     translationKey: "assessmentExpired",
-    variant: "amber",
+    variant: "orange",
   }),
   FAILED: Object.freeze({
     translationKey: "assessmentFailed",

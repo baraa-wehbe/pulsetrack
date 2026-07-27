@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import InlineSpinner from "@/components/inline-spinner";
+
 export default function LoginForm({ messages, nextPath }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -81,10 +83,12 @@ export default function LoginForm({ messages, nextPath }) {
         </p>
       ) : null}
       <button
-        className="w-full rounded-full bg-teal-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-700 dark:hover:bg-teal-600"
+        aria-busy={submitting}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-700 dark:hover:bg-teal-600"
         disabled={submitting}
         type="submit"
       >
+        {submitting ? <InlineSpinner /> : null}
         {submitting ? messages.signingIn : messages.signIn}
       </button>
     </form>

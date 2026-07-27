@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
+import InlineSpinner from "@/components/inline-spinner";
 import { DIALOG_FOOTER_CLASS } from "@/components/dialog-styles";
 import { createAssessmentRequestSchemaForDate } from "@/lib/assessment-validation";
 
@@ -162,10 +163,12 @@ export default function PatientAssessmentForm({
 
       <div className={DIALOG_FOOTER_CLASS}>
         <button
-          className="rounded-full bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
+          aria-busy={pending}
+          className="inline-flex items-center gap-2 rounded-full bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={pending || !hasEmail}
           type="submit"
         >
+          {pending ? <InlineSpinner /> : null}
           {pending
             ? messages.assessmentSubmitting
             : isScheduled

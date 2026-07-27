@@ -18,9 +18,7 @@ export default async function RootLayout({ children }) {
       dir={getDocumentDirection(language)}
       lang={language}
     >
-      <body className="min-h-screen bg-slate-50 text-slate-950 antialiased dark:bg-slate-950 dark:text-slate-50">
-        {children}
-      </body>
+      <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
 }

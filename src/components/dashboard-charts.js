@@ -15,7 +15,7 @@ export const DonutChart = ({ accessibleLabel, items }) => {
     <div className="grid gap-5 sm:grid-cols-[9rem_1fr] sm:items-center">
       <div
         aria-label={accessibleLabel}
-        className="relative mx-auto size-32 rounded-full"
+        className="clinical-chart-ring relative mx-auto size-32 rounded-full shadow-[inset_0_0_0_1px_rgb(15_118_110_/_0.08)]"
         role="img"
         style={{
           background:
@@ -71,7 +71,7 @@ export const HorizontalBarChart = ({ accessibleLabel, items }) => {
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
             <div
-              className="h-full rounded-full"
+              className="clinical-chart-bar h-full rounded-full"
               style={{
                 backgroundColor: colors[index % colors.length],
                 width: `${(item.value / maximum) * 100}%`,

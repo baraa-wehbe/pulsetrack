@@ -14,6 +14,20 @@ export const toSafePatient = (patient) => ({
   updatedAt: patient.updatedAt.toISOString(),
 });
 
+const PATIENT_LIST_ASSESSMENT_STATUSES = new Set([
+  "SCHEDULED",
+  "SENT",
+  "COMPLETED",
+  "EXPIRED",
+]);
+
+const toPatientListAssessmentStatus = (assessments = []) => {
+  const latestStatus = assessments[0]?.status;
+  return PATIENT_LIST_ASSESSMENT_STATUSES.has(latestStatus)
+    ? latestStatus
+    : "NOT_SENT";
+};
+
 export const toSafePatientListItem = (patient) => ({
   id: patient.id,
   mrn: patient.mrn,
@@ -27,7 +41,53 @@ export const toSafePatientListItem = (patient) => ({
   fhirOwnership: patient.fhirOwnership,
   fhirSyncStatus: patient.fhirSyncStatus,
   fhirLastSyncedAt: patient.fhirLastSyncedAt?.toISOString() ?? null,
+  assessmentStatus: toPatientListAssessmentStatus(patient.assessments),
 });
+
+const toSafeQuestionResponses = (definition, answers) => {
+  if (
+    !definition ||
+    !Array.isArray(definition.items) ||
+    !Array.isArray(definition.options) ||
+    !answers ||
+    typeof answers !== "object" ||
+    Array.isArray(answers)
+  ) {
+    return [];
+  }
+
+  const answerLabels = new Map(
+    definition.options
+      .filter(
+        (option) =>
+          Number.isInteger(option?.value) &&
+          typeof option?.label === "string" &&
+          option.label.trim(),
+      )
+      .map((option) => [option.value, option.label.trim()]),
+  );
+
+  return definition.items.flatMap((item) => {
+    if (
+      typeof item?.id !== "string" ||
+      typeof item?.text !== "string" ||
+      !Object.hasOwn(answers, item.id) ||
+      !Number.isInteger(answers[item.id])
+    ) {
+      return [];
+    }
+
+    const answer = answerLabels.get(answers[item.id]);
+    if (!answer) return [];
+
+    return [
+      {
+        question: item.text.trim(),
+        answer,
+      },
+    ];
+  });
+};
 
 const toSafeAssessment = (assessment) => {
   const scoring = assessment.questionnaire.definition?.scoring;
@@ -54,6 +114,10 @@ const toSafeAssessment = (assessment) => {
           riskBand: assessment.response.riskBand,
           submittedAt: assessment.response.submittedAt.toISOString(),
           scoreMaximum: Number.isInteger(scoring?.max) ? scoring.max : null,
+          questionResponses: toSafeQuestionResponses(
+            assessment.questionnaire.definition,
+            assessment.response.answers,
+          ),
         }
       : null,
   };
@@ -104,6 +168,13 @@ export const PATIENT_LIST_SELECT = Object.freeze({
   fhirOwnership: true,
   fhirSyncStatus: true,
   fhirLastSyncedAt: true,
+  assessments: {
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 1,
+    select: {
+      status: true,
+    },
+  },
 });
 
 export const PATIENT_DETAIL_SELECT = Object.freeze({
@@ -143,6 +214,7 @@ export const PATIENT_DETAIL_SELECT = Object.freeze({
       },
       response: {
         select: {
+          answers: true,
           totalScore: true,
           riskBand: true,
           submittedAt: true,

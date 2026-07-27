@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 
 import { DIALOG_FOOTER_CLASS } from "@/components/dialog-styles";
+import InlineSpinner from "@/components/inline-spinner";
 
 export default function ArchivePatientButton({ messages, patientIdentifier }) {
   const [open, setOpen] = useState(false);
@@ -68,11 +69,13 @@ export default function ArchivePatientButton({ messages, patientIdentifier }) {
           ) : null}
           <div className={`mt-6 ${DIALOG_FOOTER_CLASS}`}>
             <button
-              className="rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-wait disabled:opacity-60"
+              aria-busy={submitting}
+              className="inline-flex items-center gap-2 rounded-full bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:cursor-wait disabled:opacity-60"
               disabled={submitting}
               onClick={archive}
               type="button"
             >
+              {submitting ? <InlineSpinner /> : null}
               {submitting ? messages.archiving : messages.confirmArchive}
             </button>
             <Dialog.Close asChild>

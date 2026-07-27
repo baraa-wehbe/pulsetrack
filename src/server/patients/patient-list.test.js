@@ -63,6 +63,7 @@ test("list pagination uses matching conditions for count and rows", async () => 
     fhirOwnership: "EXTERNAL_READ_ONLY",
     fhirSyncStatus: "SYNCED",
     fhirLastSyncedAt: new Date("2026-07-25T12:00:00.000Z"),
+    assessments: [{ status: "COMPLETED" }],
   };
   const transaction = {
     patient: {
@@ -72,7 +73,15 @@ test("list pagination uses matching conditions for count and rows", async () => 
       },
       findMany: async (args) => {
         calls.findMany.push(args);
-        return [rawPatient];
+        return [
+          rawPatient,
+          {
+            ...rawPatient,
+            id: "7a817af5-f43b-4719-9d39-65ec6cc056a0",
+            mrn: "PT-101",
+            assessments: [],
+          },
+        ];
       },
     },
   };
@@ -104,6 +113,13 @@ test("list pagination uses matching conditions for count and rows", async () => 
   });
   assert.equal(result.activePatientCount, 30);
   assert.equal(result.patients[0].fhirSyncStatus, "SYNCED");
+  assert.equal(result.patients[0].assessmentStatus, "COMPLETED");
+  assert.equal(result.patients[1].assessmentStatus, "NOT_SENT");
+  assert.deepEqual(calls.findMany[0].select.assessments, {
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: 1,
+    select: { status: true },
+  });
   assert.equal("fhirLastSyncError" in result.patients[0], false);
 });
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import BrandMark from "@/components/brand-mark";
 import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 import CustomDropdown from "@/components/custom-dropdown";
 import LogoutButton from "@/components/logout-button";
@@ -33,19 +34,27 @@ const MobileLink = ({ active, children, href, onSelect }) => (
 );
 
 const ClinicianIdentity = ({ clinician, messages }) => (
-  <div className="min-w-0">
-    <p className="text-xs text-slate-500 dark:text-slate-400">
-      {messages.signedInAs}
-    </p>
-    <p className="max-w-48 truncate text-sm font-semibold text-slate-900 dark:text-white">
-      {clinician.fullName}
-    </p>
-    <p
-      className="max-w-48 truncate text-xs text-slate-500 dark:text-slate-400"
-      dir="ltr"
+  <div className="flex min-w-0 items-center gap-2.5">
+    <span
+      aria-hidden="true"
+      className="grid size-9 shrink-0 place-items-center rounded-full border border-teal-200 bg-teal-50 text-xs font-black text-teal-800 dark:border-teal-800 dark:bg-teal-950 dark:text-teal-200"
     >
-      {clinician.email}
-    </p>
+      {clinician.fullName.trim().charAt(0).toLocaleUpperCase()}
+    </span>
+    <div className="min-w-0">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {messages.signedInAs}
+      </p>
+      <p className="max-w-48 truncate text-sm font-semibold text-slate-900 dark:text-white">
+        {clinician.fullName}
+      </p>
+      <p
+        className="max-w-48 truncate text-xs text-slate-500 dark:text-slate-400"
+        dir="ltr"
+      >
+        {clinician.email}
+      </p>
+    </div>
   </div>
 );
 
@@ -83,13 +92,14 @@ export default function AppNavigation({
   const dashboardActive = isDashboardRoute(pathname);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-950/95">
-      <div className="mx-auto flex min-h-16 max-w-screen-2xl items-center gap-4 px-4 sm:px-6 lg:px-8">
+    <header className="app-header sticky top-0 z-40 border-b backdrop-blur-xl">
+      <div className="mx-auto flex min-h-[4.5rem] max-w-screen-2xl items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link
-          className="shrink-0 text-lg font-bold tracking-tight text-teal-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600 dark:text-teal-300"
+          className="brand-lockup shrink-0 rounded-xl font-bold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-teal-600"
           href="/"
         >
-          {messages.brand}
+          <BrandMark />
+          <span className="text-lg">{messages.brand}</span>
         </Link>
 
         <nav
@@ -153,12 +163,13 @@ export default function AppNavigation({
             <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/55 backdrop-blur-sm lg:hidden" />
             <Dialog.Content
               aria-describedby={undefined}
-              className="fixed inset-y-0 end-0 z-50 flex w-[min(90vw,24rem)] flex-col overflow-y-auto border-s border-slate-200 bg-white p-5 shadow-2xl outline-none dark:border-slate-700 dark:bg-slate-950 lg:hidden"
+              className="fixed inset-y-0 end-0 z-50 flex w-[min(90vw,24rem)] flex-col overflow-y-auto border-s border-slate-200 bg-white/95 p-5 shadow-2xl backdrop-blur-xl outline-none dark:border-slate-700 dark:bg-slate-950/95 lg:hidden"
               dir={direction}
             >
               <div className="flex items-center justify-between gap-4">
-                <Dialog.Title className="text-lg font-bold text-teal-800 dark:text-teal-300">
-                  {messages.brand}
+                <Dialog.Title className="brand-lockup text-lg font-bold">
+                  <BrandMark />
+                  <span>{messages.brand}</span>
                 </Dialog.Title>
                 <Dialog.Close asChild>
                   <button

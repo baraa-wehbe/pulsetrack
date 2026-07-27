@@ -47,6 +47,42 @@ using email delivery or any non-local deployment, replace `AUTH_SECRET`,
 `SCHEDULER_SECRET`, `SENDGRID_API_KEY`, and `ASSESSMENT_EMAIL_FROM`. Only
 `NEXT_PUBLIC_APP_URL` may be exposed to browser bundles.
 
+## Deploying from GitHub to Vercel
+
+Import the GitHub repository into Vercel as a Next.js project. The committed
+`vercel.json` runs Prisma Client generation before the production build.
+
+Create a managed PostgreSQL database that is reachable from Vercel, then add
+every variable listed in `.env.example` under **Project Settings → Environment
+Variables**. Use separate values for Production, Preview, and Development when
+appropriate:
+
+- `DATABASE_URL` must be the managed database connection string. Prefer the
+  provider's pooled runtime URL when one is available.
+- Generate unique values of at least 32 characters for `AUTH_SECRET` and
+  `SCHEDULER_SECRET`.
+- Set `NEXT_PUBLIC_APP_URL` to the deployed HTTPS origin.
+- Add SendGrid and FHIR variables only when those integrations are enabled.
+
+Do not upload or commit `.env` or `.env.local`. Those files are intentionally
+ignored because Git history is not a secret store; `.env.example` is the
+deployable variable manifest.
+
+Apply the committed database migrations to the managed database before serving
+production traffic:
+
+```powershell
+$env:DATABASE_URL="<managed-production-database-url>"
+npm run db:deploy
+npm run db:seed
+```
+
+Create the first production clinician with a unique password:
+
+```powershell
+npm run clinician:create -- --email clinician@example.com --password "<unique-password>" --name "Clinic Administrator"
+```
+
 ## Local PostgreSQL
 
 Start the PostgreSQL 17 development database:

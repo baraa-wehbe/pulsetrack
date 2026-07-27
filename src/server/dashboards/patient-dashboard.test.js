@@ -320,13 +320,15 @@ test("empty aggregate and partially populated patients remain honest and safe", 
 });
 
 test("dashboard UI has aggregate scope, searchable filtering, accessible charts, and no sensitive data", async () => {
-  const [page, chart, loading, error, privateLayout] = await Promise.all([
-    readSource("app/(private)/dashboard/patient/page.js"),
-    readSource("components/time-series-chart.js"),
-    readSource("app/(private)/dashboard/patient/loading.js"),
-    readSource("app/(private)/dashboard/patient/error.js"),
-    readSource("app/(private)/layout.js"),
-  ]);
+  const [page, chart, loading, sharedLoading, error, privateLayout] =
+    await Promise.all([
+      readSource("app/(private)/dashboard/patient/page.js"),
+      readSource("components/time-series-chart.js"),
+      readSource("app/(private)/dashboard/patient/loading.js"),
+      readSource("components/route-loading.js"),
+      readSource("app/(private)/dashboard/patient/error.js"),
+      readSource("app/(private)/layout.js"),
+    ]);
 
   assert.match(page, /parsePatientDashboardQuery/);
   assert.match(page, /PatientDashboardFilter/);
@@ -336,7 +338,8 @@ test("dashboard UI has aggregate scope, searchable filtering, accessible charts,
   assert.match(page, /patientsNeedingFollowUp/);
   assert.match(chart, /role="img"/);
   assert.match(chart, /<table className="sr-only">/);
-  assert.match(loading, /role="status"/);
+  assert.match(loading, /<RouteLoading/);
+  assert.match(sharedLoading, /role="status"/);
   assert.match(error, /role="alert"/);
   assert.doesNotMatch(error, /error\.message/);
   assert.match(privateLayout, /requireCurrentClinician/);
@@ -347,4 +350,34 @@ test("dashboard UI has aggregate scope, searchable filtering, accessible charts,
       /tokenHash|recipientEmail|answers|scoringSnapshot|session|password/i,
     );
   }
+});
+
+test("patient selector searches from its main field without a second menu input", async () => {
+  const [dropdown, filter] = await Promise.all([
+    readSource("components/custom-dropdown.js"),
+    readSource("components/patient-dashboard-filter.js"),
+  ]);
+
+  assert.match(
+    dropdown,
+    /<DropdownMenu\.Trigger asChild>[\s\S]*?<input[\s\S]*?aria-autocomplete="list"[\s\S]*?role="combobox"/,
+  );
+  assert.match(dropdown, /value=\{open \? search : triggerLabel\}/);
+  assert.match(dropdown, /onFocus=\{\(\) => setOpen\(true\)\}/);
+  assert.match(dropdown, /focusFirstOption/);
+  assert.doesNotMatch(
+    dropdown,
+    /<DropdownMenu\.Content[\s\S]*?\{searchable \? \([\s\S]*?<input/,
+  );
+
+  assert.match(
+    filter,
+    /\{ label: messages\.allPatients, searchText: "", value: "all" \}/,
+  );
+  assert.match(
+    filter,
+    /searchText: `\$\{patient\.firstName\} \$\{patient\.lastName\} \$\{patient\.mrn\}`/,
+  );
+  assert.match(filter, /value === "all"[\s\S]*?"\/dashboard\/patient"/);
+  assert.match(filter, /searchable/);
 });

@@ -1,9 +1,17 @@
-export default function FhirSyncLoading() {
+import RouteLoading from "@/components/route-loading";
+import { getTranslations } from "@/i18n/translations";
+import { getRequestPreferences } from "@/server/preferences/current";
+
+export default async function FhirSyncLoading() {
+  const { language } = await getRequestPreferences();
+  const messages = getTranslations(language);
+
   return (
-    <div aria-live="polite" className="space-y-4" role="status">
-      <div className="h-10 w-72 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-      <div className="h-40 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-900" />
-      <span className="sr-only">Loading FHIR synchronization status…</span>
-    </div>
+    <RouteLoading
+      cards={4}
+      compact
+      status={messages.fhirSynchronizing}
+      title={messages.fhirSyncHeading}
+    />
   );
 }

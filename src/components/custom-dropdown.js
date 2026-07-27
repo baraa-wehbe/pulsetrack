@@ -2,7 +2,7 @@
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 import {
   FILTER_CONTROL_CLASS,
@@ -45,9 +45,14 @@ export default function CustomDropdown({
   value,
   variant = "form",
 }) {
+  const generatedId = useId();
+  const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const searchRef = useRef(null);
+  const contentRef = useRef(null);
   const navigation = variant === "navigation";
+  const searchableFormControl = searchable && !navigation;
+  const menuId = id ? `${id}-options` : `custom-dropdown-${generatedId}`;
   const visibleItems =
     searchable && search
       ? items.filter((item) =>
@@ -60,16 +65,83 @@ export default function CustomDropdown({
     ? `${navigationItemClass(active)} inline-flex items-center gap-1`
     : `${FILTER_CONTROL_CLASS} flex min-h-10 w-full items-center justify-between gap-2 text-start`;
 
+  const handleOpenChange = (nextOpen) => {
+    setOpen(nextOpen);
+    if (!nextOpen) setSearch("");
+  };
+
+  const focusFirstOption = () => {
+    contentRef.current
+      ?.querySelector('[role="menuitemradio"]:not([data-disabled])')
+      ?.focus();
+  };
+
   return (
-    <DropdownMenu.Root dir={direction} onOpenChange={() => setSearch("")}>
-      <DropdownMenu.Trigger
-        aria-label={ariaLabel}
-        className={triggerClassName}
-        id={id}
-      >
-        <span className="truncate">{triggerLabel}</span>
-        <ChevronIcon />
-      </DropdownMenu.Trigger>
+    <DropdownMenu.Root
+      dir={direction}
+      modal={!searchableFormControl}
+      onOpenChange={handleOpenChange}
+      open={open}
+    >
+      {searchableFormControl ? (
+        <div className="relative">
+          <DropdownMenu.Trigger asChild>
+            <input
+              aria-autocomplete="list"
+              aria-controls={menuId}
+              aria-expanded={open}
+              aria-label={ariaLabel}
+              autoComplete="off"
+              className={`${FILTER_CONTROL_CLASS} min-h-10 w-full pe-9`}
+              id={id}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                if (!open) setOpen(true);
+              }}
+              onFocus={() => setOpen(true)}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowDown") {
+                  event.preventDefault();
+                  focusFirstOption();
+                } else if (event.key === "Escape") {
+                  event.preventDefault();
+                  handleOpenChange(false);
+                } else if (event.key === " ") {
+                  event.preventDefault();
+                  setSearch((currentSearch) => `${currentSearch} `);
+                }
+              }}
+              onPointerDown={(event) => {
+                if (open) {
+                  event.preventDefault();
+                  searchRef.current?.focus();
+                }
+              }}
+              placeholder={open ? searchPlaceholder : undefined}
+              readOnly={!open}
+              ref={searchRef}
+              role="combobox"
+              type="text"
+              value={open ? search : triggerLabel}
+            />
+          </DropdownMenu.Trigger>
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400"
+          >
+            <ChevronIcon />
+          </span>
+        </div>
+      ) : (
+        <DropdownMenu.Trigger
+          aria-label={ariaLabel}
+          className={triggerClassName}
+          id={id}
+        >
+          <span className="truncate">{triggerLabel}</span>
+          <ChevronIcon />
+        </DropdownMenu.Trigger>
+      )}
       {name ? <input name={name} type="hidden" value={value} /> : null}
       <DropdownMenu.Portal>
         <DropdownMenu.Content
@@ -79,28 +151,16 @@ export default function CustomDropdown({
               ? "min-w-56"
               : "min-w-[var(--radix-dropdown-menu-trigger-width)]"
           }`}
+          id={menuId}
+          ref={contentRef}
           sideOffset={6}
           onOpenAutoFocus={(event) => {
-            if (searchable) {
+            if (searchableFormControl) {
               event.preventDefault();
               searchRef.current?.focus();
             }
           }}
         >
-          {searchable ? (
-            <input
-              aria-label={searchPlaceholder}
-              className={`${FILTER_CONTROL_CLASS} mb-1 w-full`}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== "Escape") event.stopPropagation();
-              }}
-              placeholder={searchPlaceholder}
-              ref={searchRef}
-              type="search"
-              value={search}
-            />
-          ) : null}
           {navigation ? (
             visibleItems.map((item) => (
               <DropdownMenu.Item asChild key={item.href}>

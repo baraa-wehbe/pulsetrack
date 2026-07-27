@@ -9,7 +9,7 @@ export default function AuthenticatedShell({
   theme,
 }) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-slate-50">
+    <div className="app-shell">
       <a
         className="control-pill fixed start-4 top-3 z-[100] -translate-y-20 rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white shadow-lg transition focus:translate-y-0 focus:outline-2 focus:outline-offset-2 focus:outline-teal-300"
         href="#main-content"
@@ -24,7 +24,7 @@ export default function AuthenticatedShell({
         theme={theme}
       />
       <main
-        className="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
+        className="app-main mx-auto w-full max-w-screen-2xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8 lg:py-11"
         id="main-content"
         tabIndex={-1}
       >

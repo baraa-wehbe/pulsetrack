@@ -245,12 +245,15 @@ test("recent uploads are safely serialized and ordered for validation links", as
 });
 
 test("clinic UI documents scope and denominator and provides safe accessible states", async () => {
-  const [page, loading, error, translations] = await Promise.all([
-    readSource("app/(private)/dashboard/clinic/page.js"),
-    readSource("app/(private)/dashboard/clinic/loading.js"),
-    readSource("app/(private)/dashboard/clinic/error.js"),
-    readSource("i18n/translations.js"),
-  ]);
+  const [page, loading, sharedLoading, error, translations] = await Promise.all(
+    [
+      readSource("app/(private)/dashboard/clinic/page.js"),
+      readSource("app/(private)/dashboard/clinic/loading.js"),
+      readSource("components/route-loading.js"),
+      readSource("app/(private)/dashboard/clinic/error.js"),
+      readSource("i18n/translations.js"),
+    ],
+  );
 
   assert.match(page, /requireCurrentClinician/);
   assert.match(page, /parseClinicDashboardQuery/);
@@ -259,7 +262,8 @@ test("clinic UI documents scope and denominator and provides safe accessible sta
   assert.match(page, /href=\{`\/lab-uploads\/\$\{labImport\.id\}`\}/);
   assert.match(page, /noClinicActivityTitle/);
   assert.match(page, /noRecentLabUploads/);
-  assert.match(loading, /role="status"/);
+  assert.match(loading, /<RouteLoading/);
+  assert.match(sharedLoading, /role="status"/);
   assert.match(error, /role="alert"/);
   assert.doesNotMatch(error, /error\.message/);
   assert.match(translations, /latestRiskDistribution/);

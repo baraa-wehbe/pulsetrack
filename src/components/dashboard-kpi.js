@@ -1,6 +1,10 @@
 export default function DashboardKpi({ label, note, value }) {
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <article className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-teal-500 via-cyan-400 to-transparent"
+      />
       <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
         {label}
       </p>

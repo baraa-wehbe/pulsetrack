@@ -148,6 +148,9 @@ test("patient list has responsive cards and a semantic table", async () => {
   assert.match(source, /scope="col"/);
   assert.match(source, /scope="row"/);
   assert.match(source, /PatientBadge/);
+  assert.match(source, /messages\.assessmentStatus/);
+  assert.match(source, /value=\{patient\.assessmentStatus\}/);
+  assert.doesNotMatch(source, /kind="syncStatus"/);
   assert.match(source, /Pagination/);
   assert.match(filterSource, /<form/);
   assert.match(filterSource, /name="search"/);
@@ -169,16 +172,19 @@ test("only MRN links to details and assessment actions open in-place dialogs", a
 });
 
 test("patient list loading, empty, filtered-empty, and error states are intentional", async () => {
-  const [page, loading, error] = await Promise.all([
+  const [page, loading, sharedLoading, error] = await Promise.all([
     readSource("app/(private)/patients/page.js"),
     readSource("app/(private)/patients/loading.js"),
+    readSource("components/route-loading.js"),
     readSource("app/(private)/patients/error.js"),
   ]);
 
   assert.match(page, /noMatchingPatientsTitle/);
   assert.match(page, /noPatientsTitle/);
-  assert.match(loading, /role="status"/);
-  assert.match(loading, /aria-hidden="true"/);
+  assert.match(loading, /<RouteLoading/);
+  assert.match(sharedLoading, /role="status"/);
+  assert.match(sharedLoading, /aria-hidden="true"/);
+  assert.match(sharedLoading, /clinical-skeleton/);
   assert.match(error, /role="alert"/);
   assert.match(error, /onClick=\{reset\}/);
   assert.doesNotMatch(error, /error\.message/);

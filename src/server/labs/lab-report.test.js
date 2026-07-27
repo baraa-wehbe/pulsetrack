@@ -255,17 +255,19 @@ test("report handler returns safe not-found and sanitized failure responses", as
 });
 
 test("history and detail UI expose protected links, filters, and safe states", async () => {
-  const [history, page, route, loading, error, notFound] = await Promise.all([
-    readFile("src/app/(private)/lab-uploads/page.js", "utf8"),
-    readFile("src/app/(private)/lab-uploads/[importId]/page.js", "utf8"),
-    readFile(
-      "src/app/api/private/lab-imports/[importId]/report/route.js",
-      "utf8",
-    ),
-    readFile("src/app/(private)/lab-uploads/[importId]/loading.js", "utf8"),
-    readFile("src/app/(private)/lab-uploads/[importId]/error.js", "utf8"),
-    readFile("src/app/(private)/lab-uploads/[importId]/not-found.js", "utf8"),
-  ]);
+  const [history, page, route, loading, sharedLoading, error, notFound] =
+    await Promise.all([
+      readFile("src/app/(private)/lab-uploads/page.js", "utf8"),
+      readFile("src/app/(private)/lab-uploads/[importId]/page.js", "utf8"),
+      readFile(
+        "src/app/api/private/lab-imports/[importId]/report/route.js",
+        "utf8",
+      ),
+      readFile("src/app/(private)/lab-uploads/[importId]/loading.js", "utf8"),
+      readFile("src/components/route-loading.js", "utf8"),
+      readFile("src/app/(private)/lab-uploads/[importId]/error.js", "utf8"),
+      readFile("src/app/(private)/lab-uploads/[importId]/not-found.js", "utf8"),
+    ]);
 
   assert.match(
     history,
@@ -278,7 +280,8 @@ test("history and detail UI expose protected links, filters, and safe states", a
   assert.match(page, /md:hidden/);
   assert.doesNotMatch(page, /rawData|fileSha256|failureReason/);
   assert.match(route, /withClinicianAuthentication/);
-  assert.match(loading, /role="status"/);
+  assert.match(loading, /<RouteLoading/);
+  assert.match(sharedLoading, /role="status"/);
   assert.match(error, /role="alert"/);
   assert.doesNotMatch(error, /error\.message/);
   assert.match(notFound, /labImportNotFoundTitle/);
