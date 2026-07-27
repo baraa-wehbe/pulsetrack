@@ -6,8 +6,15 @@ PulseTrack is a clinician-managed remote patient monitoring application.
 
 Tier 1 includes clinician authentication, patient management, DSMA-8 delivery
 and public completion, partial CSV lab importing with validation reports, and
-patient and clinic dashboards. Patients do not have application accounts.
-FHIR synchronization and AI features are not implemented.
+patient and clinic dashboards. Tier 2 includes the server-only FHIR client,
+patient and Observation push synchronization, bounded seed-data pull, retries,
+and clinician sync status views. Patients do not have application accounts.
+AI features are not implemented.
+
+The recommended stable Observation identifier namespace is
+`https://challenge.capadev.dev/pulsetrack/lab-result`. It identifies immutable
+local LabResult UUIDs, remains independent of a deployment hostname, and
+therefore supports idempotent conditional Observation creation.
 
 ## Requirements
 
@@ -120,9 +127,7 @@ authentication flows.
 ## Authenticated application shell
 
 Authenticated clinicians share one protected responsive shell with destinations
-for Patients, Lab Uploads, Clinic Dashboard, and Patient Dashboard. The
-lab-upload and dashboard destinations remain accessible placeholders until
-their later feature tasks.
+for Patients, Lab Uploads, FHIR Sync, Clinic Dashboard, and Patient Dashboard.
 
 Language and theme preferences use separate first-party cookies:
 
@@ -243,7 +248,8 @@ inserted even when other rows fail. The database identity of patient, collection
 date, and test code prevents duplicate results across retries and corrected
 re-uploads. Raw CSV files are not retained; only safe filename metadata, a
 SHA-256 digest, normalized row results, and stable validation codes are stored.
-FHIR synchronization remains intentionally deferred.
+Accepted results enqueue idempotent FHIR Observation synchronization when the
+optional server-only FHIR configuration is available.
 
 Each upload-history filename links to the clinician-scoped validation detail at
 `/lab-uploads/[importId]`. The detail page presents every stored source row in

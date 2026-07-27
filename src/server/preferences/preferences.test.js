@@ -100,6 +100,7 @@ test("navigation exposes required distinct protected destinations", () => {
   assert.deepEqual(PRIMARY_NAVIGATION, [
     { href: "/patients", labelKey: "patients" },
     { href: "/lab-uploads", labelKey: "labUploads" },
+    { href: "/fhir-sync", labelKey: "fhirSync" },
   ]);
   assert.deepEqual(DASHBOARD_NAVIGATION, [
     { href: "/dashboard/clinic", labelKey: "clinicDashboard" },

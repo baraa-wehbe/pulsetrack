@@ -101,3 +101,18 @@ test("operational logs use controlled messages and error names only", async () =
     );
   }
 });
+
+test("patient audit and lab import persistence avoid unnecessary PHI copies", async () => {
+  const [patients, labs] = await Promise.all([
+    readSource("server/patients/service.js"),
+    readSource("server/labs/processing.js"),
+  ]);
+
+  assert.doesNotMatch(
+    patients,
+    /metadata:\s*\{\s*changedFields,\s*changes\s*\}/,
+  );
+  assert.match(patients, /metadata:\s*\{\s*changedFields\s*\}/);
+  assert.match(labs, /rawData:\s*\{\}/);
+  assert.doesNotMatch(labs, /rawData:\s*row\.fields/);
+});

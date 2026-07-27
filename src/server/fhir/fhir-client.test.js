@@ -141,6 +141,20 @@ test("Bundle pagination follows same-origin next links and preserves entry order
   ]);
 });
 
+test("an empty Bundle may omit the optional entry property", async () => {
+  const client = createFhirClient(
+    options(async () =>
+      jsonResponse({
+        resourceType: "Bundle",
+        type: "searchset",
+        total: 0,
+      }),
+    ),
+  );
+
+  assert.deepEqual(await client.getBundle("Patient?identifier=missing"), []);
+});
+
 test("Bundle pagination rejects cross-origin next links before requesting them", async () => {
   let requests = 0;
   const client = createFhirClient(
@@ -160,6 +174,38 @@ test("Bundle pagination rejects cross-origin next links before requesting them",
       error instanceof FhirClientError && error.code === "UNTRUSTED_URL",
   );
   assert.equal(requests, 1);
+});
+
+test("Bundle pagination safely rebases proxy-origin links within the configured FHIR path", async () => {
+  const urls = [];
+  const client = createFhirClient(
+    options(async (url) => {
+      urls.push(url.toString());
+      return urls.length === 1
+        ? jsonResponse({
+            resourceType: "Bundle",
+            entry: [{ fullUrl: "one" }],
+            link: [
+              {
+                relation: "next",
+                url: "http://internal-fhir:8080/r4/Patient?page=2",
+              },
+            ],
+          })
+        : jsonResponse({
+            resourceType: "Bundle",
+            entry: [{ fullUrl: "two" }],
+          });
+    }),
+  );
+
+  const entries = await client.getBundle("Patient?page=1");
+
+  assert.deepEqual(entries, [{ fullUrl: "one" }, { fullUrl: "two" }]);
+  assert.deepEqual(urls, [
+    "https://fhir.example.test/r4/Patient?page=1",
+    "https://fhir.example.test/r4/Patient?page=2",
+  ]);
 });
 
 test("429 retries are bounded and honor a capped Retry-After", async () => {

@@ -51,6 +51,7 @@
     "test:tier1:e2e": "tsx --tsconfig jsconfig.json --test src/server/tier1/tier1-flow.integration.test.js",
     "test:tier1:security": "tsx --tsconfig jsconfig.json --test src/server/security/tier1-security.test.js",
     "test:fhir": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-client.test.js src/server/fhir/fhir-mapping.test.js src/server/fhir/patient-sync.test.js src/server/fhir/observation-sync.test.js",
+    "test:fhir:config": "tsx --tsconfig jsconfig.json --test src/config/fhir.test.js",
     "test:fhir:observations": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-mapping.test.js src/server/fhir/observation-sync.test.js",
     "test:fhir:pull": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/seed-pull.test.js src/server/fhir/seed-pull.integration.test.js",
     "test:fhir:status": "tsx --conditions=react-server --tsconfig jsconfig.json --test src/server/fhir/fhir-status.test.js",

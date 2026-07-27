@@ -154,6 +154,35 @@ export const createFhirClient = ({
     return candidate;
   };
 
+  const resolvePaginationUrl = (value) => {
+    try {
+      return resolveUrl(value);
+    } catch (error) {
+      if (
+        !(error instanceof FhirClientError) ||
+        error.code !== "UNTRUSTED_URL"
+      ) {
+        throw error;
+      }
+
+      let candidate;
+      try {
+        candidate = new URL(value);
+      } catch {
+        throw error;
+      }
+      const basePath = base.pathname.replace(/\/+$/, "");
+      if (
+        candidate.pathname !== basePath &&
+        !candidate.pathname.startsWith(`${basePath}/`)
+      ) {
+        throw error;
+      }
+
+      return new URL(`${candidate.pathname}${candidate.search}`, base.origin);
+    }
+  };
+
   const request = async (method, path, body, requestHeaders = {}) => {
     const url = resolveUrl(path);
 
@@ -259,15 +288,18 @@ export const createFhirClient = ({
         throw new FhirClientError("PAGINATION_LIMIT");
       }
       const bundle = await get(next.toString());
-      if (bundle?.resourceType !== "Bundle" || !Array.isArray(bundle.entry)) {
+      if (
+        bundle?.resourceType !== "Bundle" ||
+        (bundle.entry !== undefined && !Array.isArray(bundle.entry))
+      ) {
         throw new FhirClientError("INVALID_BUNDLE");
       }
-      entries.push(...bundle.entry);
+      entries.push(...(bundle.entry ?? []));
 
       const nextLink = Array.isArray(bundle.link)
         ? bundle.link.find((link) => link?.relation === "next")?.url
         : null;
-      next = nextLink ? resolveUrl(nextLink) : null;
+      next = nextLink ? resolvePaginationUrl(nextLink) : null;
     }
 
     return entries;

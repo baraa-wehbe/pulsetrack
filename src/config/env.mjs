@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { resolveFhirConfiguration } from "./fhir.mjs";
+
 const optionalEnvironmentValue = (schema) =>
   z.preprocess(
     (value) => (value === "" ? undefined : value),
@@ -22,8 +24,18 @@ const environmentSchema = z.object({
     .max(20 * 1024 * 1024)
     .default(5 * 1024 * 1024),
   NEXT_PUBLIC_APP_URL: z.url(),
+  RESEND_API_KEY: optionalEnvironmentValue(z.string().min(1)),
+  ASSESSMENT_EMAIL_FROM: optionalEnvironmentValue(z.string().min(3).max(320)),
   FHIR_BASE_URL: optionalEnvironmentValue(z.url()),
   FHIR_API_KEY: optionalEnvironmentValue(z.string().min(1)),
+  FHIR_CANDIDATE_ID: optionalEnvironmentValue(
+    z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .regex(/^[A-Za-z0-9._-]+$/),
+  ),
   FHIR_MRN_IDENTIFIER_SYSTEM: optionalEnvironmentValue(z.url()),
   FHIR_LAB_RESULT_IDENTIFIER_SYSTEM: optionalEnvironmentValue(z.url()),
   FHIR_REQUEST_TIMEOUT_MS: z.coerce
@@ -41,8 +53,11 @@ const result = environmentSchema.safeParse({
   SCHEDULER_SECRET: process.env.SCHEDULER_SECRET,
   LAB_CSV_MAX_BYTES: process.env.LAB_CSV_MAX_BYTES,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  ASSESSMENT_EMAIL_FROM: process.env.ASSESSMENT_EMAIL_FROM,
   FHIR_BASE_URL: process.env.FHIR_BASE_URL,
   FHIR_API_KEY: process.env.FHIR_API_KEY,
+  FHIR_CANDIDATE_ID: process.env.FHIR_CANDIDATE_ID,
   FHIR_MRN_IDENTIFIER_SYSTEM: process.env.FHIR_MRN_IDENTIFIER_SYSTEM,
   FHIR_LAB_RESULT_IDENTIFIER_SYSTEM:
     process.env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM,
@@ -58,5 +73,14 @@ if (!result.success) {
     `Invalid environment configuration. Check: ${affectedVariables.join(", ")}`,
   );
 }
+
+export const fhirConfiguration = resolveFhirConfiguration({
+  baseUrl: result.data.FHIR_BASE_URL,
+  apiKey: result.data.FHIR_API_KEY,
+  candidateId: result.data.FHIR_CANDIDATE_ID,
+  mrnIdentifierSystem: result.data.FHIR_MRN_IDENTIFIER_SYSTEM,
+  resultIdentifierSystem: result.data.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM,
+  timeoutMs: result.data.FHIR_REQUEST_TIMEOUT_MS,
+});
 
 export const env = Object.freeze(result.data);

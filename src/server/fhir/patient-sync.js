@@ -28,7 +28,13 @@ const hasOwnedIdentifier = (resource, system, mrn) =>
     (identifier) => identifier?.system === system && identifier?.value === mrn,
   );
 
-const requireOwnedPatient = (resource, system, mrn) => {
+const hasCandidateOwnershipTag = (resource, candidateId) =>
+  typeof candidateId === "string" &&
+  candidateId.length > 0 &&
+  Array.isArray(resource?.meta?.tag) &&
+  resource.meta.tag.some((tag) => tag?.code === candidateId);
+
+const requireOwnedPatient = (resource, system, mrn, candidateId) => {
   if (
     resource?.resourceType !== "Patient" ||
     typeof resource.id !== "string" ||
@@ -36,7 +42,10 @@ const requireOwnedPatient = (resource, system, mrn) => {
   ) {
     throw new PatientSyncError("MALFORMED_RESOURCE");
   }
-  if (!hasOwnedIdentifier(resource, system, mrn)) {
+  if (
+    !hasOwnedIdentifier(resource, system, mrn) ||
+    !hasCandidateOwnershipTag(resource, candidateId)
+  ) {
     throw new PatientSyncError("EXTERNAL_OWNERSHIP");
   }
   return resource;
@@ -53,7 +62,12 @@ const searchPath = (system, mrn) =>
 const conditionalIdentifier = (system, mrn) =>
   `identifier=${encodeURIComponent(`${system}|${mrn}`)}`;
 
-const synchronizePatient = async ({ client, mrnIdentifierSystem, patient }) => {
+const synchronizePatient = async ({
+  candidateId,
+  client,
+  mrnIdentifierSystem,
+  patient,
+}) => {
   if (patient.archivedAt) throw new PatientSyncError("ARCHIVED_PATIENT");
   if (patient.fhirOwnership === "EXTERNAL_READ_ONLY") {
     throw new PatientSyncError("EXTERNAL_OWNERSHIP");
@@ -77,6 +91,7 @@ const synchronizePatient = async ({ client, mrnIdentifierSystem, patient }) => {
       matches[0],
       mrnIdentifierSystem,
       patient.mrn,
+      candidateId,
     );
     if (patient.fhirResourceId && patient.fhirResourceId !== remote.id) {
       throw new PatientSyncError("EXTERNAL_OWNERSHIP");
@@ -92,7 +107,12 @@ const synchronizePatient = async ({ client, mrnIdentifierSystem, patient }) => {
     } catch {
       throw new PatientSyncError("PROVIDER_FAILURE");
     }
-    return requireOwnedPatient(updated, mrnIdentifierSystem, patient.mrn);
+    return requireOwnedPatient(
+      updated,
+      mrnIdentifierSystem,
+      patient.mrn,
+      candidateId,
+    );
   }
 
   if (patient.fhirResourceId) {
@@ -108,7 +128,12 @@ const synchronizePatient = async ({ client, mrnIdentifierSystem, patient }) => {
   } catch {
     throw new PatientSyncError("PROVIDER_FAILURE");
   }
-  return requireOwnedPatient(created, mrnIdentifierSystem, patient.mrn);
+  return requireOwnedPatient(
+    created,
+    mrnIdentifierSystem,
+    patient.mrn,
+    candidateId,
+  );
 };
 
 const patientSelect = Object.freeze({
@@ -132,7 +157,13 @@ const retryDelay = (attempts) =>
 export const processPatientSyncTask = async (
   prismaClient,
   taskId,
-  { client, mrnIdentifierSystem, maxAttempts = 5, now = () => new Date() },
+  {
+    candidateId,
+    client,
+    mrnIdentifierSystem,
+    maxAttempts = 5,
+    now = () => new Date(),
+  },
 ) => {
   const claimedAt = now();
   const staleBefore = new Date(claimedAt.getTime() - 10 * 60 * 1000);
@@ -174,6 +205,7 @@ export const processPatientSyncTask = async (
 
   try {
     const remote = await synchronizePatient({
+      candidateId,
       client,
       mrnIdentifierSystem,
       patient: task.patient,

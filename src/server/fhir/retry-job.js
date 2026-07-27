@@ -9,6 +9,7 @@ export const runFhirRetryJob = async (
   prismaClient,
   {
     client,
+    candidateId,
     mrnIdentifierSystem,
     resultIdentifierSystem,
     limit = 25,
@@ -32,12 +33,12 @@ export const runFhirRetryJob = async (
   try {
     const patients = await patientProcessor(
       prismaClient,
-      { client, mrnIdentifierSystem },
+      { candidateId, client, mrnIdentifierSystem },
       { limit, maxAttempts: FHIR_MAX_SYNC_ATTEMPTS, now },
     );
     const observations = await observationProcessor(
       prismaClient,
-      { client, resultIdentifierSystem },
+      { candidateId, client, resultIdentifierSystem },
       { limit, maxAttempts: FHIR_MAX_SYNC_ATTEMPTS, now },
     );
     const result = {

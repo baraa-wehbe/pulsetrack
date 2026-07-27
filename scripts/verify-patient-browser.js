@@ -266,7 +266,7 @@ const main = async () => {
     await page.waitForURL((url) => !url.searchParams.has("page"));
 
     await page.goto(
-      `/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=NOT_SYNCED&pageSize=10`,
+      `/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=PENDING&pageSize=10`,
     );
     assert.match(page.url(), /search=/);
     const detailSelector = `a[href^="/patients/${patientId}?returnTo="]`;

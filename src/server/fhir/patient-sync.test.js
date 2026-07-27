@@ -6,6 +6,7 @@ import { enqueuePatientSync } from "./patient-sync-queue.js";
 import { createPatient, updatePatient } from "../patients/service.js";
 
 const system = "https://candidate.example/mrn";
+const candidateId = "candidate-test";
 const patient = {
   id: "10000000-0000-4000-8000-000000000001",
   mrn: "PT-100",
@@ -25,7 +26,7 @@ const ownedRemote = (id = "remote-100") => ({
   resourceType: "Patient",
   id,
   identifier: [{ system, value: patient.mrn }],
-  meta: { versionId: "4" },
+  meta: { versionId: "4", tag: [{ code: candidateId }] },
 });
 
 const createWorkerPrisma = (overrides = {}) => {
@@ -173,6 +174,7 @@ test("missing remote Patient uses MRN conditional create and persists ownership"
   };
 
   const result = await processPatientSyncTask(prisma, prisma.state.task.id, {
+    candidateId,
     client,
     mrnIdentifierSystem: system,
   });
@@ -203,6 +205,7 @@ test("confirmed candidate-owned match updates only its exact FHIR id", async () 
   };
 
   const result = await processPatientSyncTask(prisma, prisma.state.task.id, {
+    candidateId,
     client,
     mrnIdentifierSystem: system,
   });
@@ -239,6 +242,7 @@ test("external ownership and multiple matches fail safely without writes", async
     const prisma = createWorkerPrisma();
     let writeCalled = false;
     const result = await processPatientSyncTask(prisma, prisma.state.task.id, {
+      candidateId,
       client: {
         getBundle: async () => scenario.entries,
         post: async () => {
@@ -264,6 +268,7 @@ test("external ownership and multiple matches fail safely without writes", async
 test("ambiguous provider failure is sanitized and retry re-search is idempotent", async () => {
   const prisma = createWorkerPrisma();
   const first = await processPatientSyncTask(prisma, prisma.state.task.id, {
+    candidateId,
     client: {
       getBundle: async () => [],
       post: async () => {
@@ -282,6 +287,7 @@ test("ambiguous provider failure is sanitized and retry re-search is idempotent"
   prisma.state.task.nextAttemptAt = null;
   let postCalled = false;
   const retry = await processPatientSyncTask(prisma, prisma.state.task.id, {
+    candidateId,
     client: {
       getBundle: async () => [{ resource: ownedRemote() }],
       put: async () => ownedRemote(),

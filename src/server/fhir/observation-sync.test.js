@@ -8,6 +8,7 @@ import {
 import { processObservationSyncTask } from "./observation-sync.js";
 
 const identifierSystem = "https://candidate.example/lab-result";
+const candidateId = "candidate-test";
 const labResult = {
   id: "10000000-0000-4000-8000-000000000010",
   collectedDate: new Date("2026-07-20T00:00:00.000Z"),
@@ -34,7 +35,7 @@ const ownedObservation = (id = "observation-100") => ({
   resourceType: "Observation",
   id,
   identifier: [{ system: identifierSystem, value: labResult.id }],
-  meta: { versionId: "3" },
+  meta: { versionId: "3", tag: [{ code: candidateId }] },
 });
 
 const createPrisma = (resultOverrides = {}) => {
@@ -158,6 +159,7 @@ test("successful push conditionally creates an Observation linked to exact Patie
     prisma,
     prisma.state.task.id,
     {
+      candidateId,
       resultIdentifierSystem: identifierSystem,
       client: {
         getBundle: async () => [],
@@ -192,6 +194,7 @@ test("missing patient synchronization coalesces patient work and defers safely",
     prisma,
     prisma.state.task.id,
     {
+      candidateId,
       resultIdentifierSystem: identifierSystem,
       client: {
         getBundle: async () => {
@@ -224,6 +227,7 @@ test("external patient ownership fails without an Observation request", async ()
     prisma,
     prisma.state.task.id,
     {
+      candidateId,
       resultIdentifierSystem: identifierSystem,
       client: {
         getBundle: async () => {
@@ -242,6 +246,7 @@ test("retry searches first, updates owned exact match, and sanitizes failures", 
     prisma,
     prisma.state.task.id,
     {
+      candidateId,
       resultIdentifierSystem: identifierSystem,
       client: {
         getBundle: async () => {
@@ -261,6 +266,7 @@ test("retry searches first, updates owned exact match, and sanitizes failures", 
   let postCalled = false;
   let putPath = null;
   const retry = await processObservationSyncTask(prisma, prisma.state.task.id, {
+    candidateId,
     resultIdentifierSystem: identifierSystem,
     client: {
       getBundle: async () => [{ resource: ownedObservation() }],

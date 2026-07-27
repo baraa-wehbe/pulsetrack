@@ -201,12 +201,12 @@ const main = async () => {
     );
     assert.equal(safeListPatient.origin, "LOCAL");
     assert.equal(safeListPatient.fhirOwnership, "NONE");
-    assert.equal(safeListPatient.fhirSyncStatus, "NOT_SYNCED");
+    assert.equal(safeListPatient.fhirSyncStatus, "PENDING");
     assert.equal("fhirLastSyncError" in safeListPatient, false);
     assert.match(list.headers.get("cache-control"), /no-store/);
 
     const searchedList = await authenticatedRequest(
-      `/api/private/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=NOT_SYNCED&page=1&pageSize=10`,
+      `/api/private/patients?search=${normalizedMrn.toLowerCase()}&origin=LOCAL&ownership=NONE&syncStatus=PENDING&page=1&pageSize=10`,
     );
     assert.equal(searchedList.status, 200);
     const searchedBody = await searchedList.json();

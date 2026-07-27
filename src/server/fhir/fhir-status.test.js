@@ -53,15 +53,18 @@ test("retry orchestration always processes patients before Observations", async 
     },
   };
   const result = await runFhirRetryJob(prisma, {
+    candidateId: "candidate-test",
     client: {},
     mrnIdentifierSystem: "https://example.test/mrn",
     resultIdentifierSystem: "https://example.test/result",
     now: () => new Date("2026-07-26T12:00:00.000Z"),
-    patientProcessor: async (_prisma, _options, settings) => {
+    patientProcessor: async (_prisma, options, settings) => {
+      assert.equal(options.candidateId, "candidate-test");
       order.push(["PATIENT", settings.maxAttempts]);
       return { discovered: 1, succeeded: 1, failed: 0, skipped: 0 };
     },
-    observationProcessor: async (_prisma, _options, settings) => {
+    observationProcessor: async (_prisma, options, settings) => {
+      assert.equal(options.candidateId, "candidate-test");
       order.push(["OBSERVATION", settings.maxAttempts]);
       return {
         discovered: 2,

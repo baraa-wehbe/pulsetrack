@@ -1,4 +1,4 @@
-import { env } from "@/config/env";
+import { env } from "../src/config/env.mjs";
 import { prisma } from "@/lib/prisma";
 import { createFhirClient } from "@/server/fhir/client";
 import { processPendingObservationSyncTasks } from "@/server/fhir/observation-sync";
@@ -8,6 +8,7 @@ const run = async () => {
   if (
     !env.FHIR_BASE_URL ||
     !env.FHIR_API_KEY ||
+    !env.FHIR_CANDIDATE_ID ||
     !env.FHIR_MRN_IDENTIFIER_SYSTEM ||
     !env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM
   ) {
@@ -23,10 +24,12 @@ const run = async () => {
   });
   const patientResult = await processPendingPatientSyncTasks(prisma, {
     client,
+    candidateId: env.FHIR_CANDIDATE_ID,
     mrnIdentifierSystem: env.FHIR_MRN_IDENTIFIER_SYSTEM,
   });
   const observationResult = await processPendingObservationSyncTasks(prisma, {
     client,
+    candidateId: env.FHIR_CANDIDATE_ID,
     resultIdentifierSystem: env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM,
   });
 

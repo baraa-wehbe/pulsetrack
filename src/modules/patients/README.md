@@ -21,8 +21,8 @@ No live FHIR checks or raw synchronization errors are exposed by the list.
 Send and Schedule routes are protected clinician workflows backed by the shared
 assessment delivery service.
 
-The detail route uses the normalized MRN (`/patients/[mrn]`) and resolves only
-rows where `archived_at IS NULL`. It renders safe demographics and assessment
+The detail route uses an opaque patient UUID (`/patients/[patientId]`) and
+resolves only rows where `archived_at IS NULL`. It renders safe demographics and assessment
 history ordered by assessment creation time descending with ID used only as a
 database ordering fallback. Stored response totals and risk bands are displayed;
 the DSMA-8 maximum is read from the stored questionnaire definition. Token

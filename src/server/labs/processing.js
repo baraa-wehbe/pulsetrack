@@ -281,7 +281,10 @@ const processLabImportTransaction = async (
             importId,
             rowNumber: row.rowNumber,
             status,
-            rawData: row.fields,
+            // Normalized values and stable validation errors are sufficient for
+            // the validation report. Do not duplicate the uploaded PHI-heavy
+            // source row after processing.
+            rawData: {},
             normalizedData,
             validationErrors: errors,
             labResultId,

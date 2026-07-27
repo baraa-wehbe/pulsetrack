@@ -1,4 +1,4 @@
-import { env } from "@/config/env.mjs";
+import { env, fhirConfiguration } from "@/config/env.mjs";
 import { patientIdentifierRouteParamsSchema } from "@/lib/patient-validation";
 import { prisma } from "@/lib/prisma";
 import { withClinicianAuthentication } from "@/server/auth/api";
@@ -22,13 +22,7 @@ const patientIdentifier = async (params) => {
   return parsed.success ? parsed.data.patientId : null;
 };
 
-const configured = () =>
-  Boolean(
-    env.FHIR_BASE_URL &&
-    env.FHIR_API_KEY &&
-    env.FHIR_MRN_IDENTIFIER_SYSTEM &&
-    env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM,
-  );
+const configured = () => fhirConfiguration.enabled;
 
 const safeError = (error) => {
   if (!(error instanceof FhirManagementError)) return null;

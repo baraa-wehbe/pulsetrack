@@ -1,4 +1,4 @@
-import { env } from "@/config/env";
+import { env } from "../src/config/env.mjs";
 import { prisma } from "@/lib/prisma";
 import { createFhirClient } from "@/server/fhir/client";
 import { pullSeedPatientsAndObservations } from "@/server/fhir/seed-pull";
@@ -7,6 +7,7 @@ const run = async () => {
   if (
     !env.FHIR_BASE_URL ||
     !env.FHIR_API_KEY ||
+    !env.FHIR_CANDIDATE_ID ||
     !env.FHIR_MRN_IDENTIFIER_SYSTEM
   ) {
     throw new Error("FHIR seed pull requires server-only FHIR configuration.");

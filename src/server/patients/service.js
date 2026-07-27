@@ -291,15 +291,6 @@ export const updatePatient = async (
         return { patient: existingPatient, changed: false };
       }
 
-      const changes = Object.fromEntries(
-        changedFields.map((field) => [
-          field,
-          {
-            from: comparableValue(existingPatient, field),
-            to: input[field],
-          },
-        ]),
-      );
       const data = Object.fromEntries(
         changedFields.map((field) => [
           field,
@@ -320,7 +311,7 @@ export const updatePatient = async (
           action: PATIENT_AUDIT_ACTIONS.update,
           actorId,
           patientId: existingPatient.id,
-          metadata: { changedFields, changes },
+          metadata: { changedFields },
         }),
       );
 
@@ -380,12 +371,6 @@ export const archivePatient = async (
         patientId: existingPatient.id,
         metadata: {
           changedFields: ["archivedAt"],
-          changes: {
-            archivedAt: {
-              from: null,
-              to: archivedAt.toISOString(),
-            },
-          },
         },
       }),
     );

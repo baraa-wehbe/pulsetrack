@@ -19,4 +19,5 @@ a confirmed candidate-owned Patient reference.
 
 `npm run fhir:pull-seeds` performs the bounded manual pull for seed MRNs
 `MRN-2001` through `MRN-2005` and their supported historical Observations.
-Continuous polling and synchronization UI remain deferred.
+The protected `/fhir-sync` page presents safe retry-run history and failed-task
+summaries. Continuous polling remains deferred.

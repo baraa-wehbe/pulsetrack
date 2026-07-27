@@ -33,7 +33,13 @@ const hasOwnedIdentifier = (resource, system, value) =>
       identifier?.system === system && identifier?.value === value,
   );
 
-const requireOwnedObservation = (resource, system, localId) => {
+const hasCandidateOwnershipTag = (resource, candidateId) =>
+  typeof candidateId === "string" &&
+  candidateId.length > 0 &&
+  Array.isArray(resource?.meta?.tag) &&
+  resource.meta.tag.some((tag) => tag?.code === candidateId);
+
+const requireOwnedObservation = (resource, system, localId, candidateId) => {
   if (
     resource?.resourceType !== "Observation" ||
     typeof resource.id !== "string" ||
@@ -41,7 +47,10 @@ const requireOwnedObservation = (resource, system, localId) => {
   ) {
     throw new ObservationSyncError("MALFORMED_RESOURCE");
   }
-  if (!hasOwnedIdentifier(resource, system, localId)) {
+  if (
+    !hasOwnedIdentifier(resource, system, localId) ||
+    !hasCandidateOwnershipTag(resource, candidateId)
+  ) {
     throw new ObservationSyncError("OBSERVATION_OWNERSHIP_CONFLICT");
   }
   return resource;
@@ -88,6 +97,7 @@ const resultSelect = Object.freeze({
 });
 
 const pushObservation = async ({
+  candidateId,
   client,
   labResult,
   resultIdentifierSystem,
@@ -110,6 +120,7 @@ const pushObservation = async ({
       matches[0],
       resultIdentifierSystem,
       labResult.id,
+      candidateId,
     );
     if (labResult.fhirResourceId && labResult.fhirResourceId !== remote.id) {
       throw new ObservationSyncError("OBSERVATION_OWNERSHIP_CONFLICT");
@@ -127,6 +138,7 @@ const pushObservation = async ({
         await client.put(`Observation/${remote.id}`, mapped),
         resultIdentifierSystem,
         labResult.id,
+        candidateId,
       );
     } catch (error) {
       if (error instanceof ObservationSyncError) throw error;
@@ -151,6 +163,7 @@ const pushObservation = async ({
       }),
       resultIdentifierSystem,
       labResult.id,
+      candidateId,
     );
   } catch (error) {
     if (error instanceof ObservationSyncError) throw error;
@@ -161,7 +174,13 @@ const pushObservation = async ({
 export const processObservationSyncTask = async (
   prismaClient,
   taskId,
-  { client, resultIdentifierSystem, maxAttempts = 5, now = () => new Date() },
+  {
+    candidateId,
+    client,
+    resultIdentifierSystem,
+    maxAttempts = 5,
+    now = () => new Date(),
+  },
 ) => {
   const claimedAt = now();
   const staleBefore = new Date(claimedAt.getTime() - 10 * 60 * 1000);
@@ -239,6 +258,7 @@ export const processObservationSyncTask = async (
 
   try {
     const remote = await pushObservation({
+      candidateId,
       client,
       labResult: task.labResult,
       resultIdentifierSystem,

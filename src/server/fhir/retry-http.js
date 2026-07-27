@@ -24,12 +24,7 @@ export const createFhirRetryHandler =
     ) {
       return json({ error: "Unauthorized." }, 401);
     }
-    if (
-      !fhirConfiguration.baseUrl ||
-      !fhirConfiguration.apiKey ||
-      !fhirConfiguration.mrnIdentifierSystem ||
-      !fhirConfiguration.resultIdentifierSystem
-    ) {
+    if (!fhirConfiguration.enabled) {
       return json({ error: "FHIR synchronization is not configured." }, 503);
     }
     try {
@@ -39,6 +34,7 @@ export const createFhirRetryHandler =
         timeoutMs: fhirConfiguration.timeoutMs,
       });
       const result = await runJob(prismaClient, {
+        candidateId: fhirConfiguration.candidateId,
         client,
         mrnIdentifierSystem: fhirConfiguration.mrnIdentifierSystem,
         resultIdentifierSystem: fhirConfiguration.resultIdentifierSystem,
