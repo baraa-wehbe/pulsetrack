@@ -1,5 +1,6 @@
-const PROVIDER_NAME = "resend";
+const PROVIDER_NAME = "sendgrid";
 const SAFE_PROVIDER_ID = /^[A-Za-z0-9._:-]{1,255}$/;
+const SIMPLE_EMAIL = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 
 export class AssessmentEmailError extends Error {
   constructor(code, safeMessage) {
@@ -10,7 +11,7 @@ export class AssessmentEmailError extends Error {
 }
 
 const getEmailConfiguration = () => {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.SENDGRID_API_KEY;
   const from = process.env.ASSESSMENT_EMAIL_FROM;
 
   if (!apiKey || !from) {
@@ -20,7 +21,23 @@ const getEmailConfiguration = () => {
     );
   }
 
-  return { apiKey, from };
+  const namedSender = from.match(/^([^<>\r\n]{1,100})\s*<([^<>\r\n]+)>$/);
+  const senderEmail = (namedSender?.[2] ?? from).trim();
+  const senderName = namedSender?.[1].trim();
+
+  if (!SIMPLE_EMAIL.test(senderEmail)) {
+    throw new AssessmentEmailError(
+      "EMAIL_CONFIGURATION_INVALID",
+      "Email delivery is not configured.",
+    );
+  }
+
+  return {
+    apiKey,
+    from: senderName
+      ? { email: senderEmail, name: senderName }
+      : { email: senderEmail },
+  };
 };
 
 const safeProviderMessageId = (value) =>
@@ -38,7 +55,7 @@ export const sendAssessmentEmail = async ({
   let response;
 
   try {
-    response = await fetch("https://api.resend.com/emails", {
+    response = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -46,17 +63,22 @@ export const sendAssessmentEmail = async ({
         "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify({
+        personalizations: [{ to: [{ email: recipientEmail }] }],
         from,
-        to: [recipientEmail],
         subject: `PulseTrack: ${questionnaireTitle}`,
-        text: [
-          `Hello ${patientName},`,
-          "",
-          "Your clinician has invited you to complete a PulseTrack assessment.",
-          `Open the secure assessment link: ${assessmentUrl}`,
-          "",
-          "This link expires seven days after delivery.",
-        ].join("\n"),
+        content: [
+          {
+            type: "text/plain",
+            value: [
+              `Hello ${patientName},`,
+              "",
+              "Your clinician has invited you to complete a PulseTrack assessment.",
+              `Open the secure assessment link: ${assessmentUrl}`,
+              "",
+              "This link expires seven days after delivery.",
+            ].join("\n"),
+          },
+        ],
       }),
       signal: signal ?? AbortSignal.timeout(10_000),
     });
@@ -74,23 +96,9 @@ export const sendAssessmentEmail = async ({
     );
   }
 
-  let result;
-  try {
-    result = await response.json();
-  } catch {
-    throw new AssessmentEmailError(
-      "EMAIL_PROVIDER_RESPONSE_INVALID",
-      "Email delivery could not be confirmed.",
-    );
-  }
-
-  const messageId = safeProviderMessageId(result?.id);
-  if (!messageId) {
-    throw new AssessmentEmailError(
-      "EMAIL_PROVIDER_RESPONSE_INVALID",
-      "Email delivery could not be confirmed.",
-    );
-  }
+  const messageId =
+    safeProviderMessageId(response.headers.get("x-message-id")) ??
+    `accepted:${idempotencyKey}`;
 
   return { provider: PROVIDER_NAME, messageId };
 };

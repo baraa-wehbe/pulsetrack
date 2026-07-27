@@ -71,7 +71,7 @@ const login = async (page) => {
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(`${BASE_URL}/`);
+  await page.waitForURL(`${BASE_URL}/patients`);
 };
 
 const main = async () => {
@@ -112,11 +112,27 @@ const main = async () => {
     await assertNoHorizontalOverflow(page);
     await page.setViewportSize({ width: 1440, height: 900 });
 
-    await page.getByRole("link", { name: "مريض جديد" }).click();
-    await page.waitForURL(`${BASE_URL}/patients/new`);
+    const newPatientButton = page
+      .getByRole("button", { name: "مريض جديد" })
+      .first();
+    await newPatientButton.click();
+    assert.equal(page.url(), `${BASE_URL}/patients`);
     await page
+      .getByRole("dialog")
       .getByRole("heading", { name: "إنشاء مريض" })
       .waitFor({ state: "visible" });
+
+    await page.locator("#mrn").fill("RESET-ME");
+    await page.getByRole("button", { name: "إلغاء" }).click();
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    assert.equal(
+      await newPatientButton.evaluate(
+        (element) => element === document.activeElement,
+      ),
+      true,
+    );
+    await newPatientButton.click();
+    assert.equal(await page.locator("#mrn").inputValue(), "");
 
     await page.locator("#mrn").fill(` ${normalizedMrn.toLowerCase()} `);
     await page.locator("#firstName").fill("Browser");
@@ -146,17 +162,23 @@ const main = async () => {
 
     await page.locator("#dateOfBirth").fill(getLocalDateOnly());
     await page.getByRole("button", { name: "حفظ المريض" }).click();
-    await page.waitForURL(new RegExp(`${BASE_URL}/patients/[0-9a-f-]{36}$`));
+    await page.getByRole("dialog").waitFor({ state: "hidden" });
+    assert.equal(page.url(), `${BASE_URL}/patients`);
+    await page
+      .getByRole("status")
+      .getByText("تم إنشاء المريض بنجاح.")
+      .waitFor();
     const storedPatient = await prisma.patient.findUnique({
       where: { mrn: normalizedMrn },
       select: { id: true },
     });
     assert.ok(storedPatient);
-    const patientId = new URL(page.url()).pathname.split("/").at(-1);
-    assert.equal(patientId, storedPatient.id);
+    const patientId = storedPatient.id;
     patientIds.push(patientId);
 
     assert.equal(await page.getByText(normalizedMrn).first().isVisible(), true);
+    await page.getByText(normalizedMrn).first().click();
+    await page.waitForURL(`${BASE_URL}/patients/${patientId}*`);
     assert.equal(
       await page.getByText("browser.patient@example.test").isVisible(),
       true,
@@ -341,9 +363,7 @@ const main = async () => {
     await page
       .getByRole("heading", { name: "لا يوجد مرضى مطابقون" })
       .waitFor({ state: "visible" });
-    const clearFiltersLink = page
-      .getByRole("link", { name: "مسح البحث وعوامل التصفية" })
-      .first();
+    const clearFiltersLink = page.getByRole("link", { name: "مسح" }).first();
     assert.equal(await clearFiltersLink.getAttribute("href"), "/patients");
     await page.goto("/patients");
     await assertNoSeriousAccessibilityViolations(page);

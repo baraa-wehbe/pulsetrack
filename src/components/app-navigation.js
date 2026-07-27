@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 import LogoutButton from "@/components/logout-button";
 import PreferenceControls from "@/components/preference-controls";
 import {
@@ -16,7 +17,7 @@ import {
 } from "@/lib/navigation";
 
 const desktopLinkClass = (active) =>
-  `rounded-lg px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
+  `${CONTROL_RADIUS_CLASS} px-3 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 ${
     active
       ? "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-200"
       : "text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
@@ -184,7 +185,7 @@ export default function AppNavigation({
           <Dialog.Trigger asChild>
             <button
               aria-label={messages.openNavigation}
-              className="ms-auto inline-flex size-10 items-center justify-center rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden"
+              className={`ms-auto inline-flex size-10 items-center justify-center border border-slate-300 text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 lg:hidden ${CONTROL_RADIUS_CLASS}`}
               type="button"
             >
               <MenuIcon />
@@ -204,7 +205,7 @@ export default function AppNavigation({
                 <Dialog.Close asChild>
                   <button
                     aria-label={messages.closeNavigation}
-                    className="inline-flex size-10 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-slate-300 dark:hover:bg-slate-800"
+                    className={`inline-flex size-10 items-center justify-center text-slate-600 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-slate-300 dark:hover:bg-slate-800 ${CONTROL_RADIUS_CLASS}`}
                     type="button"
                   >
                     <CloseIcon />

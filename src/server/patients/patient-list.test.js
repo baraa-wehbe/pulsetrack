@@ -174,6 +174,28 @@ test("pagination links preserve active list state without default noise", () => 
   );
 });
 
+test("automatic filter URLs preserve active values and reset pagination", () => {
+  const current = {
+    ...PATIENT_LIST_DEFAULTS,
+    search: "Leila",
+    origin: "FHIR",
+    ownership: "EXTERNAL_READ_ONLY",
+    syncStatus: "SYNCED",
+    page: 4,
+    pageSize: 25,
+  };
+
+  assert.equal(
+    buildPatientListHref(current, { search: "Layla", page: 1 }),
+    "/patients?search=Layla&origin=FHIR&ownership=EXTERNAL_READ_ONLY&syncStatus=SYNCED&pageSize=25",
+  );
+  assert.equal(
+    buildPatientListHref(current, { origin: "all", page: 1 }),
+    "/patients?search=Leila&ownership=EXTERNAL_READ_ONLY&syncStatus=SYNCED&pageSize=25",
+  );
+  assert.equal(buildPatientListHref(PATIENT_LIST_DEFAULTS), "/patients");
+});
+
 test("MRN detail links preserve only validated patient-list state", () => {
   const detailHref = buildPatientDetailHref(
     "8700ba23-32c7-4d26-9497-35fcf7660f51",

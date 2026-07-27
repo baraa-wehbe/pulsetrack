@@ -1,6 +1,6 @@
 # Notifications
 
-Assessment email delivery uses the server-only Resend adapter in
+Assessment email delivery uses the server-only SendGrid adapter in
 `src/server/assessments/email.js`. Credentials are read only during delivery
 and are never serialized to clients.
 

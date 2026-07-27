@@ -44,7 +44,7 @@ replace `Copy-Item .env.example .env` with `cp .env.example .env`.
 
 The example environment is immediately usable with the Compose database. Before
 using email delivery or any non-local deployment, replace `AUTH_SECRET`,
-`SCHEDULER_SECRET`, `RESEND_API_KEY`, and `ASSESSMENT_EMAIL_FROM`. Only
+`SCHEDULER_SECRET`, `SENDGRID_API_KEY`, and `ASSESSMENT_EMAIL_FROM`. Only
 `NEXT_PUBLIC_APP_URL` may be exposed to browser bundles.
 
 ## Local PostgreSQL
@@ -205,7 +205,7 @@ scheduler processes due work with:
 npm run assessments:deliver-due
 ```
 
-Configure the server-only `RESEND_API_KEY` and `ASSESSMENT_EMAIL_FROM`
+Configure the server-only `SENDGRID_API_KEY` and `ASSESSMENT_EMAIL_FROM`
 variables documented in `.env.example`. Production schedulers may call
 `POST /api/scheduled/assessments` with `Authorization: Bearer <scheduler-secret>`;
 configure the server-only `SCHEDULER_SECRET` with at least 32 random characters.
@@ -219,7 +219,7 @@ exactly seven days later. Every success or failure creates a delivery-attempt
 row containing only controlled provider metadata and sanitized errors.
 
 Automated assessment tests always inject a mocked email sender and never contact
-Resend:
+SendGrid:
 
 ```powershell
 npm run test:assessments:integration

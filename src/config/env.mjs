@@ -24,7 +24,7 @@ const environmentSchema = z.object({
     .max(20 * 1024 * 1024)
     .default(5 * 1024 * 1024),
   NEXT_PUBLIC_APP_URL: z.url(),
-  RESEND_API_KEY: optionalEnvironmentValue(z.string().min(1)),
+  SENDGRID_API_KEY: optionalEnvironmentValue(z.string().min(1)),
   ASSESSMENT_EMAIL_FROM: optionalEnvironmentValue(z.string().min(3).max(320)),
   FHIR_BASE_URL: optionalEnvironmentValue(z.url()),
   FHIR_API_KEY: optionalEnvironmentValue(z.string().min(1)),
@@ -53,7 +53,7 @@ const result = environmentSchema.safeParse({
   SCHEDULER_SECRET: process.env.SCHEDULER_SECRET,
   LAB_CSV_MAX_BYTES: process.env.LAB_CSV_MAX_BYTES,
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
   ASSESSMENT_EMAIL_FROM: process.env.ASSESSMENT_EMAIL_FROM,
   FHIR_BASE_URL: process.env.FHIR_BASE_URL,
   FHIR_API_KEY: process.env.FHIR_API_KEY,

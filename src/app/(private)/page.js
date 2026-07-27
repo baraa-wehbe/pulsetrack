@@ -1,16 +1,5 @@
-import PlaceholderPage from "@/components/placeholder-page";
-import { getTranslations } from "@/i18n/translations";
-import { getRequestPreferences } from "@/server/preferences/current";
+import { redirect } from "next/navigation";
 
-export default async function Home() {
-  const { language } = await getRequestPreferences();
-  const messages = getTranslations(language);
-
-  return (
-    <PlaceholderPage
-      description={messages.homeDescription}
-      eyebrow={messages.brand}
-      title={messages.homeHeading}
-    />
-  );
+export default function Home() {
+  redirect("/patients");
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+import { sendAssessmentEmail } from "@/server/assessments/email";
 import {
   ASSESSMENT_EXPIRY_MS,
   expireSentAssessments,
@@ -24,6 +25,58 @@ test("assessment tokens are random URL-safe values stored through SHA-256 hashes
 
 test("expiry duration is exactly seven 24-hour days", () => {
   assert.equal(ASSESSMENT_EXPIRY_MS, 604_800_000);
+});
+
+test("SendGrid adapter uses server-only credentials and the v3 mail shape", async (t) => {
+  const originalApiKey = process.env.SENDGRID_API_KEY;
+  const originalFrom = process.env.ASSESSMENT_EMAIL_FROM;
+  const originalFetch = globalThis.fetch;
+  process.env.SENDGRID_API_KEY = "SG.test-key";
+  process.env.ASSESSMENT_EMAIL_FROM =
+    "PulseTrack <verified-sender@example.test>";
+
+  t.after(() => {
+    if (originalApiKey === undefined) delete process.env.SENDGRID_API_KEY;
+    else process.env.SENDGRID_API_KEY = originalApiKey;
+    if (originalFrom === undefined) delete process.env.ASSESSMENT_EMAIL_FROM;
+    else process.env.ASSESSMENT_EMAIL_FROM = originalFrom;
+    globalThis.fetch = originalFetch;
+  });
+
+  globalThis.fetch = async (url, request) => {
+    assert.equal(url, "https://api.sendgrid.com/v3/mail/send");
+    assert.equal(request.method, "POST");
+    assert.equal(request.headers.Authorization, "Bearer SG.test-key");
+    assert.equal(request.headers["Content-Type"], "application/json");
+    assert.equal(request.headers["Idempotency-Key"], "delivery-key");
+    const body = JSON.parse(request.body);
+    assert.deepEqual(body.from, {
+      email: "verified-sender@example.test",
+      name: "PulseTrack",
+    });
+    assert.deepEqual(body.personalizations, [
+      { to: [{ email: "patient@example.test" }] },
+    ]);
+    assert.equal(body.content[0].type, "text/plain");
+    assert.match(body.content[0].value, /https:\/\/app\.example\.test/);
+    return new Response(null, {
+      status: 202,
+      headers: { "x-message-id": "sendgrid-message-id" },
+    });
+  };
+
+  const result = await sendAssessmentEmail({
+    assessmentUrl: "https://app.example.test/assessment/token",
+    idempotencyKey: "delivery-key",
+    patientName: "Test Patient",
+    questionnaireTitle: "DSMA-8",
+    recipientEmail: "patient@example.test",
+  });
+
+  assert.deepEqual(result, {
+    provider: "sendgrid",
+    messageId: "sendgrid-message-id",
+  });
 });
 
 test("due scheduler invokes the shared delivery function for each due assessment", async () => {
@@ -131,7 +184,10 @@ test("raw tokens stay out of response serializers, logs, and client modules", as
   assert.match(route, /withClinicianAuthentication/);
   assert.match(route, /createAssessmentRequestSchemaForDate/);
   assert.doesNotMatch(route, /rawToken|tokenHash|assessmentUrl/);
-  assert.doesNotMatch(form, /rawToken|tokenHash|RESEND|ASSESSMENT_EMAIL_FROM/);
+  assert.doesNotMatch(
+    form,
+    /rawToken|tokenHash|SENDGRID|ASSESSMENT_EMAIL_FROM/,
+  );
   assert.doesNotMatch(service, /console\.(?:log|error)[\s\S]*rawToken/);
   assert.match(form, /<label/);
   assert.match(form, /aria-invalid/);
@@ -140,6 +196,6 @@ test("raw tokens stay out of response serializers, logs, and client modules", as
   assert.match(workflow, /PatientAssessmentForm/);
   assert.match(sendPage, /getActivePatientForAssessment/);
   assert.match(schedulePage, /getActivePatientForAssessment/);
-  assert.match(email, /process\.env\.RESEND_API_KEY/);
-  assert.doesNotMatch(email, /NEXT_PUBLIC_RESEND/);
+  assert.match(email, /process\.env\.SENDGRID_API_KEY/);
+  assert.doesNotMatch(email, /NEXT_PUBLIC_SENDGRID/);
 });

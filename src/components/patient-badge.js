@@ -1,4 +1,5 @@
 import { getPatientBadge } from "@/lib/patient-list";
+import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 
 const variants = {
   neutral:
@@ -20,7 +21,7 @@ export default function PatientBadge({ kind, messages, value }) {
   return (
     <span
       aria-label={`${label}. ${description}`}
-      className={`inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${variants[mapping.variant]}`}
+      className={`inline-flex max-w-full items-center border px-2.5 py-1 text-xs font-semibold ${CONTROL_RADIUS_CLASS} ${variants[mapping.variant]}`}
       title={description}
     >
       {label}

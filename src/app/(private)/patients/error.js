@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
+import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 import { getTranslations } from "@/i18n/translations";
 
 const LocalizedText = ({ messageKey }) => (
@@ -40,14 +41,14 @@ export default function PatientsError({ reset }) {
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <button
-          className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+          className={`${CONTROL_RADIUS_CLASS} bg-teal-700 px-4 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600`}
           onClick={reset}
           type="button"
         >
           <LocalizedText messageKey="retry" />
         </button>
         <Link
-          className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700"
+          className={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-4 py-2 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700`}
           href="/"
         >
           <LocalizedText messageKey="backToWorkspace" />

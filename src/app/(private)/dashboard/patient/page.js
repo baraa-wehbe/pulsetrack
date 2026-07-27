@@ -272,7 +272,7 @@ export default async function PatientDashboardPage({ searchParams }) {
           </p>
           <Link
             className="mt-5 inline-block rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white"
-            href="/patients/new"
+            href="/patients"
           >
             {messages.newPatient}
           </Link>

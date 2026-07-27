@@ -55,7 +55,41 @@ test("patient form exposes labels, field errors, and shared normalization", asyn
   assert.match(source, /normalizePatientMrn/);
   assert.match(source, /normalizePatientEmail/);
   assert.match(source, /focusFirstError/);
+  assert.match(source, /if \(onSuccess\)/);
+  assert.match(source, /onSuccess\(body\.patient\)/);
+  assert.match(source, /onCancel \?/);
   assert.doesNotMatch(source, /patient.*(password|login|session)/i);
+});
+
+test("new patient reuses the form in an accessible in-place modal", async () => {
+  const [page, modal, form, directRoute, patientDashboard] = await Promise.all([
+    readSource("app/(private)/patients/page.js"),
+    readSource("components/new-patient-modal.js"),
+    readSource("components/patient-form.js"),
+    readSource("app/(private)/patients/new/page.js"),
+    readSource("app/(private)/dashboard/patient/page.js"),
+  ]);
+
+  assert.equal(page.match(/<NewPatientModal/g)?.length, 2);
+  assert.doesNotMatch(page, /href="\/patients\/new"/);
+  assert.match(modal, /Dialog\.Trigger asChild/);
+  assert.match(modal, /Dialog\.Title/);
+  assert.match(modal, /Dialog\.Description/);
+  assert.match(modal, /Dialog\.Close asChild/);
+  assert.match(modal, /aria-label=\{messages\.closePatientForm\}/);
+  assert.match(modal, /max-h-\[calc\(100vh-2rem\)\]/);
+  assert.match(modal, /overflow-y-auto/);
+  assert.match(modal, /<PatientForm/);
+  assert.match(modal, /onCancel=\{closeAndReset\}/);
+  assert.match(modal, /onSuccess=\{handleSuccess\}/);
+  assert.match(modal, /setFormKey\(\(current\) => current \+ 1\)/);
+  assert.match(modal, /router\.refresh\(\)/);
+  assert.doesNotMatch(modal, /router\.(push|replace)|window\.location/);
+  assert.match(form, /setFieldErrors\(errors\)/);
+  assert.match(form, /setFormError\(/);
+  assert.match(directRoute, /redirect\("\/patients"\)/);
+  assert.doesNotMatch(directRoute, /<PatientForm/);
+  assert.doesNotMatch(patientDashboard, /href="\/patients\/new"/);
 });
 
 test("archive confirmation uses an accessible dialog and soft-delete endpoint", async () => {
@@ -70,7 +104,10 @@ test("archive confirmation uses an accessible dialog and soft-delete endpoint", 
 });
 
 test("patient list has responsive cards and a semantic table", async () => {
-  const source = await readSource("app/(private)/patients/page.js");
+  const [source, filterSource] = await Promise.all([
+    readSource("app/(private)/patients/page.js"),
+    readSource("components/patient-filters.js"),
+  ]);
 
   assert.match(source, /xl:hidden/);
   assert.match(source, /<table/);
@@ -79,9 +116,10 @@ test("patient list has responsive cards and a semantic table", async () => {
   assert.match(source, /scope="row"/);
   assert.match(source, /PatientBadge/);
   assert.match(source, /Pagination/);
-  assert.match(source, /method="get"/);
-  assert.match(source, /name="search"/);
-  assert.match(source, /name=\{name\}/);
+  assert.match(filterSource, /<form/);
+  assert.match(filterSource, /name="search"/);
+  assert.match(filterSource, /name=\{name\}/);
+  assert.match(filterSource, /htmlFor="patient-search"/);
 });
 
 test("only MRN links to patient details and assessment actions have protected destinations", async () => {
@@ -113,6 +151,58 @@ test("patient list loading, empty, filtered-empty, and error states are intentio
   assert.doesNotMatch(error, /error\.message/);
 });
 
+test("patient filters navigate automatically with debounce and stale-request protection", async () => {
+  const [pageSource, filterSource] = await Promise.all([
+    readSource("app/(private)/patients/page.js"),
+    readSource("components/patient-filters.js"),
+  ]);
+
+  assert.match(pageSource, /key=\{buildPatientListHref\(query\)\}/);
+  assert.match(pageSource, /messages=\{messages\}/);
+  assert.match(pageSource, /query=\{query\}/);
+  assert.match(filterSource, /const SEARCH_DEBOUNCE_MS = 400/);
+  assert.match(filterSource, /setTimeout\(\(\) =>/);
+  assert.match(filterSource, /clearTimeout\(debounceRef\.current\)/);
+  assert.match(filterSource, /router\.replace\(href, \{ scroll: false \}\)/);
+  assert.match(filterSource, /\{ page: 1 \}/);
+  assert.match(filterSource, /lastRequestedHrefRef/);
+  assert.match(filterSource, /onChange=\{handleSearchChange\}/);
+  assert.equal(
+    filterSource.match(/onChange=\{handleSelectChange\}/g)?.length,
+    2,
+  );
+  assert.match(filterSource, /value=\{filters\.search\}/);
+  assert.match(filterSource, /href="\/patients"/);
+  assert.match(filterSource, /onClick=\{handleClear\}/);
+  assert.match(filterSource, /mt-4 flex justify-end rtl:justify-start/);
+  assert.match(filterSource, /messages\.clearPatientFiltersAction/);
+  assert.doesNotMatch(filterSource, /\{messages\.clearFilters\}/);
+  assert.doesNotMatch(filterSource, /applyFilters|type="submit"/);
+});
+
+test("patient list actions and badges share one rounded-full control radius", async () => {
+  const [styles, page, filters, badge, modal, form, error] = await Promise.all([
+    readSource("components/control-styles.js"),
+    readSource("app/(private)/patients/page.js"),
+    readSource("components/patient-filters.js"),
+    readSource("components/patient-badge.js"),
+    readSource("components/new-patient-modal.js"),
+    readSource("components/patient-form.js"),
+    readSource("app/(private)/patients/error.js"),
+  ]);
+
+  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-full"/);
+  for (const source of [page, filters, badge, modal, error]) {
+    assert.match(source, /CONTROL_RADIUS_CLASS/);
+  }
+  assert.match(page, /newPatientButtonClass[\s\S]*CONTROL_RADIUS_CLASS/);
+  assert.equal(page.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 8);
+  assert.match(modal, /controlRadiusClass=\{CONTROL_RADIUS_CLASS\}/);
+  assert.match(form, /controlRadiusClass = "rounded-lg"/);
+  assert.equal(form.match(/\$\{controlRadiusClass\}/g)?.length, 3);
+  assert.doesNotMatch(badge, /rounded-(?:sm|md|lg|xl|2xl|3xl)\b/);
+});
+
 test("FHIR badge mappings and list labels are centralized in English and Arabic", async () => {
   const [mappings, translations] = await Promise.all([
     readSource("lib/patient-list.js"),
@@ -133,6 +223,7 @@ test("FHIR badge mappings and list labels are centralized in English and Arabic"
     assert.match(mappings, new RegExp(`${value}:`));
   }
   assert.match(translations, /searchPatients: "Search patients"/);
+  assert.match(translations, /clearPatientFiltersAction: "Clear"/);
   assert.match(translations, /searchPatients: "البحث عن المرضى"/);
   assert.match(translations, /noMatchingPatientsTitle:/);
   assert.match(translations, /sendAssessmentDescription:/);

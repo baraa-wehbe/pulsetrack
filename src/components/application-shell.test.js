@@ -13,6 +13,18 @@ test("private layout authenticates once and renders the shared shell", async () 
   assert.equal(source.match(/requireCurrentClinician\(\)/g)?.length, 1);
 });
 
+test("authenticated root redirects to patients behind the private layout guard", async () => {
+  const [pageSource, layoutSource] = await Promise.all([
+    readSource("app/(private)/page.js"),
+    readSource("app/(private)/layout.js"),
+  ]);
+
+  assert.match(pageSource, /import \{ redirect \} from "next\/navigation"/);
+  assert.match(pageSource, /redirect\("\/patients"\)/);
+  assert.doesNotMatch(pageSource, /PlaceholderPage|Clinical workspace/);
+  assert.match(layoutSource, /requireCurrentClinician\(\)/);
+});
+
 test("public login page does not render the authenticated shell", async () => {
   const source = await readSource("app/(public)/login/page.js");
 
@@ -68,6 +80,29 @@ test("preference UI has accessible state and no client storage source", async ()
   assert.match(preferenceSource, /window\.location\.reload\(\)/);
   assert.doesNotMatch(combined, /localStorage|sessionStorage/);
   assert.doesNotMatch(combined, /tabIndex=\{[1-9]/);
+});
+
+test("header buttons share the rounded-full control radius", async () => {
+  const [styles, navigationSource, preferenceSource, logoutSource] =
+    await Promise.all([
+      readSource("components/control-styles.js"),
+      readSource("components/app-navigation.js"),
+      readSource("components/preference-controls.js"),
+      readSource("components/logout-button.js"),
+    ]);
+
+  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-full"/);
+  assert.equal(
+    navigationSource.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length,
+    3,
+  );
+  assert.equal(
+    preferenceSource.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length,
+    2,
+  );
+  assert.match(logoutSource, /\$\{CONTROL_RADIUS_CLASS\} border/);
+  assert.match(preferenceSource, /aria-pressed:bg-white/);
+  assert.match(preferenceSource, /dark:aria-pressed:bg-slate-700/);
 });
 
 test("root layout applies server-resolved language, direction, and theme", async () => {
