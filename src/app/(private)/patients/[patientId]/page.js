@@ -4,8 +4,9 @@ import { notFound } from "next/navigation";
 import ArchivePatientButton from "@/components/archive-patient-button";
 import AssessmentBadge from "@/components/assessment-badge";
 import FhirPatientActions from "@/components/fhir-patient-actions";
+import PatientAssessmentModal from "@/components/patient-assessment-modal";
 import PatientBadge from "@/components/patient-badge";
-import { env } from "@/config/env.mjs";
+import { fhirConfiguration } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import {
   getAssessmentTimelineEntries,
@@ -99,18 +100,18 @@ export default async function PatientDetailsPage({ params, searchParams }) {
             </h1>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link
-              className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-              href={`/patients/${patient.id}/send`}
-            >
-              {messages.send}
-            </Link>
-            <Link
-              className="rounded-lg border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
-              href={`/patients/${patient.id}/schedule`}
-            >
-              {messages.schedule}
-            </Link>
+            <PatientAssessmentModal
+              messages={messages}
+              mode="IMMEDIATE"
+              patient={patient}
+              triggerClassName="rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
+            />
+            <PatientAssessmentModal
+              messages={messages}
+              mode="SCHEDULED"
+              patient={patient}
+              triggerClassName="rounded-lg border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
+            />
             <Link
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
               href={`/patients/${patient.id}/edit`}
@@ -139,22 +140,14 @@ export default async function PatientDetailsPage({ params, searchParams }) {
             kind="syncStatus"
             messages={messages}
             value={
-              env.FHIR_BASE_URL &&
-              env.FHIR_API_KEY &&
-              env.FHIR_MRN_IDENTIFIER_SYSTEM &&
-              env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM
+              fhirConfiguration.enabled
                 ? patient.fhirSyncStatus
                 : "NOT_CONFIGURED"
             }
           />
         </div>
         <FhirPatientActions
-          configured={Boolean(
-            env.FHIR_BASE_URL &&
-            env.FHIR_API_KEY &&
-            env.FHIR_MRN_IDENTIFIER_SYSTEM &&
-            env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM,
-          )}
+          configured={fhirConfiguration.enabled}
           externallyOwned={patient.fhirOwnership === "EXTERNAL_READ_ONLY"}
           messages={messages}
           patientId={patient.id}

@@ -64,23 +64,6 @@ const getActivePatient = (transaction, patientIdentifier) =>
     },
   });
 
-export const getActivePatientForAssessment = async (
-  prismaClient,
-  patientIdentifier,
-) => {
-  const patient = await getActivePatient(prismaClient, patientIdentifier);
-
-  return patient
-    ? {
-        id: patient.id,
-        mrn: patient.mrn,
-        firstName: patient.firstName,
-        lastName: patient.lastName,
-        email: patient.email,
-      }
-    : null;
-};
-
 const getActiveQuestionnaire = (transaction) =>
   transaction.questionnaire.findFirst({
     where: { code: ACTIVE_QUESTIONNAIRE_CODE, isActive: true },

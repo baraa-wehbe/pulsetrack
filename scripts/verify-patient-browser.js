@@ -12,7 +12,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { env } from "@/config/env.mjs";
 import { getLocalDateOnly } from "@/lib/patient-validation";
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.PULSETRACK_BASE_URL ?? "http://localhost:3000";
 const email = process.env.PULSETRACK_E2E_EMAIL;
 const password = process.env.PULSETRACK_E2E_PASSWORD;
 const browserCandidates = [
@@ -53,7 +53,11 @@ const assertNoSeriousAccessibilityViolations = async (page) => {
   );
 
   assert.deepEqual(
-    violations.map(({ id, impact }) => ({ id, impact })),
+    violations.map(({ id, impact, nodes }) => ({
+      id,
+      impact,
+      targets: nodes.map((node) => node.target),
+    })),
     [],
   );
 };
@@ -176,13 +180,16 @@ const main = async () => {
     const patientId = storedPatient.id;
     patientIds.push(patientId);
 
-    assert.equal(await page.getByText(normalizedMrn).first().isVisible(), true);
-    await page.getByText(normalizedMrn).first().click();
+    await page.goto(`/patients?search=${normalizedMrn.toLowerCase()}`);
+    const visiblePatientLink = page
+      .locator(`a[href^="/patients/${patientId}"]`)
+      .filter({ visible: true });
+    await visiblePatientLink.waitFor({ state: "visible" });
+    await visiblePatientLink.click();
     await page.waitForURL(`${BASE_URL}/patients/${patientId}*`);
-    assert.equal(
-      await page.getByText("browser.patient@example.test").isVisible(),
-      true,
-    );
+    await page
+      .getByText("browser.patient@example.test")
+      .waitFor({ state: "visible" });
     await page
       .getByRole("heading", { name: "لا توجد تقييمات بعد" })
       .waitFor({ state: "visible" });
@@ -296,14 +303,15 @@ const main = async () => {
     for (const detailLink of await page.locator(detailSelector).all()) {
       assert.equal((await detailLink.textContent()).trim(), normalizedMrn);
     }
-    assert.equal(
-      await page.locator(`a[href="/patients/${patientId}/send"]`).count(),
-      2,
+    const patientAssessmentActions = page.locator(
+      `button[aria-label$="${normalizedMrn}"]`,
     );
-    assert.equal(
-      await page.locator(`a[href="/patients/${patientId}/schedule"]`).count(),
-      2,
-    );
+    const sendActions = patientAssessmentActions.filter({ hasText: "إرسال" });
+    const scheduleActions = patientAssessmentActions.filter({
+      hasText: "جدولة",
+    });
+    assert.equal(await sendActions.count(), 2);
+    assert.equal(await scheduleActions.count(), 2);
     assert.equal(await page.locator(`tr ${detailSelector}`).count(), 1);
     assert.equal(
       await page
@@ -325,40 +333,53 @@ const main = async () => {
     const assessmentCount = await prisma.assessment.count({
       where: { patientId },
     });
-    await page
-      .locator(`a[href="/patients/${patientId}/send"]`)
-      .filter({ visible: true })
-      .click();
-    await page.waitForURL(`${BASE_URL}/patients/${patientId}/send`);
-    await page.locator("form").waitFor({ state: "visible" });
-    await page.waitForFunction(() => document.title.length > 0);
-    assert.equal(await page.locator("form").count(), 1);
+    const sendAction = sendActions.filter({ visible: true });
+    await sendAction.click();
+    const sendDialog = page.getByRole("dialog");
+    await sendDialog.waitFor({ state: "visible" });
+    assert.match(page.url(), /\/patients\?/);
+    assert.equal(await sendDialog.locator("form").count(), 1);
     assert.equal(
-      await page.locator('button[type="submit"]:enabled').count(),
+      await sendDialog.locator('button[type="submit"]:enabled').count(),
       1,
     );
     await assertNoSeriousAccessibilityViolations(page);
+    await sendDialog.getByRole("button", { name: "إلغاء" }).click();
+    await sendDialog.waitFor({ state: "hidden" });
+    assert.equal(
+      await sendAction.evaluate(
+        (element) => element === document.activeElement,
+      ),
+      true,
+    );
     assert.equal(
       await prisma.assessment.count({ where: { patientId } }),
       assessmentCount,
     );
-    await page.goto(`/patients?search=${normalizedMrn.toLowerCase()}`);
-    const scheduleLink = page
-      .locator(`a[href="/patients/${patientId}/schedule"]`)
-      .filter({ visible: true });
-    await scheduleLink.focus();
-    await scheduleLink.press("Enter");
-    await page.waitForURL(`${BASE_URL}/patients/${patientId}/schedule`);
-    await page.locator("#scheduledFor").waitFor({ state: "visible" });
-    await page.waitForFunction(() => document.title.length > 0);
-    await page.locator("#scheduledFor").fill("2020-01-01T10:00");
-    await page.locator('button[type="submit"]').click();
-    await page.locator("#scheduledFor-error").waitFor({ state: "visible" });
+    const scheduleAction = scheduleActions.filter({ visible: true });
+    await scheduleAction.focus();
+    await scheduleAction.press("Enter");
+    const scheduleDialog = page.getByRole("dialog");
+    await scheduleDialog.waitFor({ state: "visible" });
+    assert.match(page.url(), /\/patients\?/);
+    await scheduleDialog.locator("#scheduledFor").fill("2020-01-01T10:00");
+    await scheduleDialog.locator('button[type="submit"]').click();
+    await scheduleDialog
+      .locator("#scheduledFor-error")
+      .waitFor({ state: "visible" });
+    assert.match(
+      await scheduleDialog.locator("#scheduledFor-timezone").textContent(),
+      /Asia\/Beirut|UTC/,
+    );
     await assertNoSeriousAccessibilityViolations(page);
     assert.equal(
       await prisma.assessment.count({ where: { patientId } }),
       assessmentCount,
     );
+    await scheduleDialog
+      .getByRole("button", { name: "إغلاق نافذة التقييم" })
+      .click();
+    await scheduleDialog.waitFor({ state: "hidden" });
     await page.goto(`/patients?search=NO-MATCH-${suffix}`);
     await page
       .getByRole("heading", { name: "لا يوجد مرضى مطابقون" })
@@ -487,7 +508,9 @@ const main = async () => {
 
 main().catch((error) => {
   console.error("Patient browser verification failed.", {
+    message: error instanceof Error ? error.message : "Unknown failure",
     name: error instanceof Error ? error.name : "UnknownError",
+    stack: error instanceof Error ? error.stack : undefined,
   });
   process.exitCode = 1;
 });

@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import axe from "axe-core";
 import { chromium } from "playwright-core";
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.PULSETRACK_BASE_URL ?? "http://localhost:3000";
 const email = process.env.PULSETRACK_E2E_EMAIL;
 const password = process.env.PULSETRACK_E2E_PASSWORD;
 const browserCandidates = [
@@ -70,8 +70,18 @@ const assertNoHorizontalOverflow = async (page) => {
 const login = async (page) => {
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
+  const loginResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/auth/login") &&
+      response.request().method() === "POST",
+  );
   await page.locator('button[type="submit"]').click();
-  await page.waitForURL(`${BASE_URL}/`);
+  assert.equal((await loginResponse).status(), 200);
+  await page.waitForTimeout(500);
+  assert.equal(new URL(page.url()).pathname, "/patients");
+  await page
+    .getByRole("heading", { name: /Patients|المرضى/ })
+    .waitFor({ state: "visible" });
 };
 
 const main = async () => {
@@ -135,13 +145,29 @@ const main = async () => {
     );
 
     await page.getByRole("link", { name: "Patients", exact: true }).click();
-    await page.waitForURL(`${BASE_URL}/patients`);
+    assert.equal(new URL(page.url()).pathname, "/patients");
     assert.equal(
       await page
         .getByRole("link", { name: "Patients", exact: true })
         .getAttribute("aria-current"),
       "page",
     );
+    await page.getByRole("link", { name: "FHIR Sync", exact: true }).click();
+    await page
+      .getByRole("heading", { name: "FHIR synchronization" })
+      .waitFor({ state: "visible" });
+    assert.equal(new URL(page.url()).pathname, "/fhir-sync");
+    const synchronizeButton = page.getByRole("button", {
+      name: "Synchronize FHIR data",
+    });
+    assert.equal(await synchronizeButton.isVisible(), true);
+    assert.equal(
+      await synchronizeButton.evaluate(
+        (element) => getComputedStyle(element).cursor,
+      ),
+      "pointer",
+    );
+    await assertNoSeriousAccessibilityViolations(page);
 
     for (const viewport of [
       { width: 1024, height: 768 },
@@ -184,7 +210,9 @@ const main = async () => {
     await mobileDialog
       .getByRole("link", { name: "Lab Uploads", exact: true })
       .click();
-    await page.waitForURL(`${BASE_URL}/lab-uploads`);
+    await page.waitForURL((url) => url.pathname === "/lab-uploads", {
+      waitUntil: "commit",
+    });
     assert.equal(await mobileDialog.count(), 0);
 
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -226,9 +254,19 @@ const main = async () => {
     });
     await assertNoHorizontalOverflow(page);
     await assertNoSeriousAccessibilityViolations(page);
+    await page.goto("/fhir-sync");
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page
+      .getByRole("button", { name: "مزامنة بيانات FHIR" })
+      .waitFor({ state: "visible" });
+    await assertNoHorizontalOverflow(page);
+    await assertNoSeriousAccessibilityViolations(page);
+    await page.setViewportSize({ width: 1440, height: 900 });
 
     await page.getByRole("button", { name: "تسجيل الخروج" }).click();
-    await page.waitForURL(`${BASE_URL}/login`);
+    await page.waitForURL((url) => url.pathname === "/login", {
+      waitUntil: "commit",
+    });
     await assertDocumentState(page, {
       direction: "rtl",
       language: "ar",
@@ -256,7 +294,9 @@ const main = async () => {
     });
 
     await page.getByRole("button", { name: "Log out" }).click();
-    await page.waitForURL(`${BASE_URL}/login`);
+    await page.waitForURL((url) => url.pathname === "/login", {
+      waitUntil: "commit",
+    });
 
     console.log(
       "Application shell browser and accessibility verification passed.",
@@ -270,6 +310,7 @@ const main = async () => {
 
 main().catch((error) => {
   console.error("Application shell browser verification failed.", {
+    message: error instanceof Error ? error.message : "Unknown failure",
     name: error instanceof Error ? error.name : "UnknownError",
   });
   process.exitCode = 1;

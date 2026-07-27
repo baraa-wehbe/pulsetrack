@@ -2,10 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import NewPatientModal from "@/components/new-patient-modal";
+import PatientAssessmentModal from "@/components/patient-assessment-modal";
 import PatientBadge from "@/components/patient-badge";
 import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 import PatientFilters from "@/components/patient-filters";
-import { env } from "@/config/env.mjs";
+import { fhirConfiguration } from "@/config/env.mjs";
 import { getTranslations } from "@/i18n/translations";
 import {
   buildPatientDetailHref,
@@ -31,24 +32,22 @@ const sexLabel = (messages, sex) =>
     UNKNOWN: messages.sexUnknown,
   })[sex];
 
-const newPatientButtonClass = `${CONTROL_RADIUS_CLASS} bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-600 dark:hover:bg-teal-500`;
+const newPatientButtonClass = `${CONTROL_RADIUS_CLASS} bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-700 dark:hover:bg-teal-600`;
 
 const PatientActions = ({ messages, patient }) => (
   <div className="flex flex-wrap justify-end gap-2">
-    <Link
-      aria-label={`${messages.sendQuestionnaireTo} ${patient.mrn}`}
-      className={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800`}
-      href={`/patients/${patient.id}/send`}
-    >
-      {messages.send}
-    </Link>
-    <Link
-      aria-label={`${messages.scheduleQuestionnaireFor} ${patient.mrn}`}
-      className={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800`}
-      href={`/patients/${patient.id}/schedule`}
-    >
-      {messages.schedule}
-    </Link>
+    <PatientAssessmentModal
+      messages={messages}
+      mode="IMMEDIATE"
+      patient={patient}
+      triggerClassName={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:bg-teal-50 hover:text-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:border-teal-500 dark:hover:bg-teal-950 dark:hover:text-teal-100`}
+    />
+    <PatientAssessmentModal
+      messages={messages}
+      mode="SCHEDULED"
+      patient={patient}
+      triggerClassName={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800`}
+    />
   </div>
 );
 
@@ -252,10 +251,7 @@ export default async function PatientsPage({ searchParams }) {
                     kind="syncStatus"
                     messages={messages}
                     value={
-                      env.FHIR_BASE_URL &&
-                      env.FHIR_API_KEY &&
-                      env.FHIR_MRN_IDENTIFIER_SYSTEM &&
-                      env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM
+                      fhirConfiguration.enabled
                         ? patient.fhirSyncStatus
                         : "NOT_CONFIGURED"
                     }
@@ -337,10 +333,7 @@ export default async function PatientsPage({ searchParams }) {
                         kind="syncStatus"
                         messages={messages}
                         value={
-                          env.FHIR_BASE_URL &&
-                          env.FHIR_API_KEY &&
-                          env.FHIR_MRN_IDENTIFIER_SYSTEM &&
-                          env.FHIR_LAB_RESULT_IDENTIFIER_SYSTEM
+                          fhirConfiguration.enabled
                             ? patient.fhirSyncStatus
                             : "NOT_CONFIGURED"
                         }

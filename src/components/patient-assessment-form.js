@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { createAssessmentRequestSchemaForDate } from "@/lib/assessment-validation";
@@ -11,8 +10,13 @@ const localTimestampToIso = (value) => {
   return Number.isFinite(date.getTime()) ? date.toISOString() : value;
 };
 
-export default function PatientAssessmentForm({ messages, mode, patient }) {
-  const router = useRouter();
+export default function PatientAssessmentForm({
+  messages,
+  mode,
+  onCancel,
+  onSuccess,
+  patient,
+}) {
   const [scheduledFor, setScheduledFor] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [formError, setFormError] = useState("");
@@ -20,6 +24,8 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
 
   const isScheduled = mode === "SCHEDULED";
   const hasEmail = Boolean(patient.email);
+  const timeZone =
+    Intl.DateTimeFormat().resolvedOptions().timeZone || messages.utcTimezone;
 
   const submit = async (event) => {
     event.preventDefault();
@@ -64,13 +70,12 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
         return;
       }
 
-      const outcome = result.delivered
-        ? "sent"
-        : result.scheduled
-          ? "scheduled"
-          : "failed";
-      router.push(`/patients/${patient.id}?assessment=${outcome}`);
-      router.refresh();
+      if (!result.delivered && !result.scheduled) {
+        setFormError(messages.assessmentFailedNotice);
+        return;
+      }
+
+      onSuccess(result.delivered ? "sent" : "scheduled");
     } catch {
       setFormError(messages.assessmentCreationError);
     } finally {
@@ -117,7 +122,9 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
             {messages.scheduledFor}
           </label>
           <input
-            aria-describedby={fieldError ? "scheduledFor-error" : undefined}
+            aria-describedby={`scheduledFor-timezone${
+              fieldError ? " scheduledFor-error" : ""
+            }`}
             aria-invalid={Boolean(fieldError)}
             className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
             id="scheduledFor"
@@ -126,6 +133,12 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
             type="datetime-local"
             value={scheduledFor}
           />
+          <p
+            className="mt-2 text-sm text-slate-600 dark:text-slate-300"
+            id="scheduledFor-timezone"
+          >
+            {messages.scheduleTimezone.replace("{timezone}", timeZone)}
+          </p>
           {fieldError && (
             <p
               className="mt-2 text-sm font-semibold text-red-700 dark:text-red-300"
@@ -158,12 +171,14 @@ export default function PatientAssessmentForm({ messages, mode, patient }) {
               ? messages.confirmSchedule
               : messages.confirmSend}
         </button>
-        <Link
-          className="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-          href={`/patients/${patient.id}`}
+        <button
+          className="rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+          disabled={pending}
+          onClick={onCancel}
+          type="button"
         >
           {messages.cancel}
-        </Link>
+        </button>
       </div>
     </form>
   );

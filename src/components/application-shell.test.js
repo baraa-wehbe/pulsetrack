@@ -82,7 +82,7 @@ test("preference UI has accessible state and no client storage source", async ()
   assert.doesNotMatch(combined, /tabIndex=\{[1-9]/);
 });
 
-test("header buttons share the rounded-full control radius", async () => {
+test("header buttons share the restrained control radius", async () => {
   const [styles, navigationSource, preferenceSource, logoutSource] =
     await Promise.all([
       readSource("components/control-styles.js"),
@@ -91,7 +91,7 @@ test("header buttons share the rounded-full control radius", async () => {
       readSource("components/logout-button.js"),
     ]);
 
-  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-full"/);
+  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-lg"/);
   assert.equal(
     navigationSource.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length,
     3,
@@ -105,14 +105,32 @@ test("header buttons share the rounded-full control radius", async () => {
   assert.match(preferenceSource, /dark:aria-pressed:bg-slate-700/);
 });
 
+test("global interactive cursors distinguish enabled and disabled controls", async () => {
+  const source = await readSource("app/globals.css");
+
+  assert.match(source, /button:not\(:disabled\)/);
+  assert.match(source, /a\[href\]:not\(\[aria-disabled="true"\]\)/);
+  assert.match(source, /\[role="button"\]:not\(\[aria-disabled="true"\]\)/);
+  assert.match(source, /\[role="tab"\]:not\(\[aria-disabled="true"\]\)/);
+  assert.match(source, /cursor: pointer/);
+  assert.match(source, /button:disabled/);
+  assert.match(source, /\[aria-disabled="true"\]/);
+  assert.match(source, /cursor: not-allowed/);
+});
+
 test("root layout applies server-resolved language, direction, and theme", async () => {
-  const source = await readSource("app/layout.js");
+  const [source, preferences] = await Promise.all([
+    readSource("app/layout.js"),
+    readSource("server/preferences/current.js"),
+  ]);
 
   assert.match(source, /getRequestPreferences\(\)/);
   assert.match(source, /lang=\{language\}/);
   assert.match(source, /dir=\{getDocumentDirection\(language\)\}/);
   assert.match(source, /className=\{theme === "dark"/);
   assert.doesNotMatch(source, /useEffect|window|localStorage/);
+  assert.match(preferences, /cache\(async \(\) =>/);
+  assert.match(preferences, /await cookies\(\)/);
 });
 
 test("preference endpoint remains behind clinician authentication", async () => {

@@ -62,13 +62,15 @@ test("patient form exposes labels, field errors, and shared normalization", asyn
 });
 
 test("new patient reuses the form in an accessible in-place modal", async () => {
-  const [page, modal, form, directRoute, patientDashboard] = await Promise.all([
-    readSource("app/(private)/patients/page.js"),
-    readSource("components/new-patient-modal.js"),
-    readSource("components/patient-form.js"),
-    readSource("app/(private)/patients/new/page.js"),
-    readSource("app/(private)/dashboard/patient/page.js"),
-  ]);
+  const [page, modal, dialogStyles, form, directRoute, patientDashboard] =
+    await Promise.all([
+      readSource("app/(private)/patients/page.js"),
+      readSource("components/new-patient-modal.js"),
+      readSource("components/dialog-styles.js"),
+      readSource("components/patient-form.js"),
+      readSource("app/(private)/patients/new/page.js"),
+      readSource("app/(private)/dashboard/patient/page.js"),
+    ]);
 
   assert.equal(page.match(/<NewPatientModal/g)?.length, 2);
   assert.doesNotMatch(page, /href="\/patients\/new"/);
@@ -77,8 +79,9 @@ test("new patient reuses the form in an accessible in-place modal", async () => 
   assert.match(modal, /Dialog\.Description/);
   assert.match(modal, /Dialog\.Close asChild/);
   assert.match(modal, /aria-label=\{messages\.closePatientForm\}/);
-  assert.match(modal, /max-h-\[calc\(100vh-2rem\)\]/);
-  assert.match(modal, /overflow-y-auto/);
+  assert.match(modal, /DIALOG_CONTENT_CLASS/);
+  assert.match(dialogStyles, /max-h-\[calc\(100dvh-2rem\)\]/);
+  assert.match(dialogStyles, /overflow-y-auto/);
   assert.match(modal, /<PatientForm/);
   assert.match(modal, /onCancel=\{closeAndReset\}/);
   assert.match(modal, /onSuccess=\{handleSuccess\}/);
@@ -122,17 +125,17 @@ test("patient list has responsive cards and a semantic table", async () => {
   assert.match(filterSource, /htmlFor="patient-search"/);
 });
 
-test("only MRN links to patient details and assessment actions have protected destinations", async () => {
+test("only MRN links to details and assessment actions open in-place dialogs", async () => {
   const source = await readSource("app/(private)/patients/page.js");
 
   assert.match(source, /buildPatientDetailHref\(patient\.id, listQuery\)/);
   assert.doesNotMatch(source, /href=\{`\/patients\/\$\{patient\.id\}`\}/);
   assert.match(source, /<MrnLink/);
   assert.doesNotMatch(source, /<h2[^>]*>\s*<Link/);
-  assert.match(source, /\/send`/);
-  assert.match(source, /\/schedule`/);
-  assert.match(source, /sendQuestionnaireTo/);
-  assert.match(source, /scheduleQuestionnaireFor/);
+  assert.match(source, /<PatientAssessmentModal/);
+  assert.match(source, /mode="IMMEDIATE"/);
+  assert.match(source, /mode="SCHEDULED"/);
+  assert.doesNotMatch(source, /\/send`|\/schedule`/);
 });
 
 test("patient list loading, empty, filtered-empty, and error states are intentional", async () => {
@@ -180,7 +183,7 @@ test("patient filters navigate automatically with debounce and stale-request pro
   assert.doesNotMatch(filterSource, /applyFilters|type="submit"/);
 });
 
-test("patient list actions and badges share one rounded-full control radius", async () => {
+test("patient list actions and badges share one restrained control radius", async () => {
   const [styles, page, filters, badge, modal, form, error] = await Promise.all([
     readSource("components/control-styles.js"),
     readSource("app/(private)/patients/page.js"),
@@ -191,7 +194,7 @@ test("patient list actions and badges share one rounded-full control radius", as
     readSource("app/(private)/patients/error.js"),
   ]);
 
-  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-full"/);
+  assert.match(styles, /CONTROL_RADIUS_CLASS = "rounded-lg"/);
   for (const source of [page, filters, badge, modal, error]) {
     assert.match(source, /CONTROL_RADIUS_CLASS/);
   }

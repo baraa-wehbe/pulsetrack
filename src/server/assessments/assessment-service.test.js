@@ -159,7 +159,7 @@ test("raw tokens stay out of response serializers, logs, and client modules", as
       ),
       readFile(
         new URL(
-          "../../components/patient-assessment-workflow.js",
+          "../../components/patient-assessment-modal.js",
           import.meta.url,
         ),
         "utf8",
@@ -193,9 +193,17 @@ test("raw tokens stay out of response serializers, logs, and client modules", as
   assert.match(form, /aria-invalid/);
   assert.match(form, /role="alert"/);
   assert.match(form, /type="datetime-local"/);
+  assert.match(workflow, /Dialog\.Title/);
+  assert.match(workflow, /Dialog\.Description/);
+  assert.match(workflow, /Dialog\.Close/);
   assert.match(workflow, /PatientAssessmentForm/);
-  assert.match(sendPage, /getActivePatientForAssessment/);
-  assert.match(schedulePage, /getActivePatientForAssessment/);
+  assert.match(workflow, /router\.refresh\(\)/);
+  assert.match(workflow, /singleUseAssessmentLink/);
+  assert.match(form, /scheduleTimezone/);
+  assert.match(form, /disabled=\{pending \|\| !hasEmail\}/);
+  assert.doesNotMatch(form, /router\.(?:push|replace)|window\.location/);
+  assert.match(sendPage, /redirect\(`/);
+  assert.match(schedulePage, /redirect\(`/);
   assert.match(email, /process\.env\.SENDGRID_API_KEY/);
   assert.doesNotMatch(email, /NEXT_PUBLIC_SENDGRID/);
 });

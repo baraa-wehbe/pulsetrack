@@ -9,6 +9,7 @@ import {
   listFhirSyncActivity,
   requestPatientSynchronization,
 } from "./management.js";
+import { runFullFhirSynchronization } from "./full-sync.js";
 import { createFhirRetryHandler } from "./retry-http.js";
 import { runFhirRetryJob } from "./retry-job.js";
 
@@ -84,6 +85,58 @@ test("retry orchestration always processes patients before Observations", async 
     "PATIENT",
     "OBSERVATION",
   ]);
+});
+
+test("clinician synchronization retries eligible tasks then pushes and pulls with configured isolation", async () => {
+  const order = [];
+  let retryQuery;
+  const result = await runFullFhirSynchronization(
+    {
+      fhirSyncTask: {
+        updateMany: async (query) => {
+          retryQuery = query;
+          return { count: 2 };
+        },
+      },
+    },
+    { kind: "mock-fhir-client" },
+    {
+      candidateId: "candidate-test",
+      mrnIdentifierSystem: "https://example.test/mrn",
+      resultIdentifierSystem: "https://example.test/results",
+    },
+    {
+      push: async (_prisma, options) => {
+        order.push("PUSH");
+        assert.equal(options.candidateId, "candidate-test");
+        assert.equal(options.client.kind, "mock-fhir-client");
+        return {
+          status: "PARTIAL",
+          succeeded: 3,
+          failed: 1,
+          skipped: 1,
+          deferred: 1,
+        };
+      },
+      pull: async (_prisma, client, options) => {
+        order.push("PULL");
+        assert.equal(client.kind, "mock-fhir-client");
+        assert.equal(options.mrnIdentifierSystem, "https://example.test/mrn");
+        return { status: "SUCCEEDED", succeeded: 5, failed: 0, skipped: 2 };
+      },
+    },
+  );
+
+  assert.deepEqual(order, ["PUSH", "PULL"]);
+  assert.deepEqual(retryQuery.where, {
+    status: "FAILED",
+    attempts: { lt: 5 },
+  });
+  assert.deepEqual(result, {
+    status: "PARTIAL",
+    pushed: { succeeded: 3, failed: 1, skipped: 2 },
+    imported: { succeeded: 5, failed: 0, skipped: 2 },
+  });
 });
 
 test("manual synchronization rejects read-only patients and coalesces eligible work", async () => {
@@ -227,6 +280,16 @@ test("badges cover not configured and private routes retain authentication wrapp
     "utf8",
   );
   assert.match(route, /withClinicianAuthentication/);
+  const fullSyncRoute = await readFile(
+    "src/app/api/private/fhir/synchronize/route.js",
+    "utf8",
+  );
+  assert.match(fullSyncRoute, /withClinicianAuthentication/);
+  assert.match(fullSyncRoute, /fhirConfiguration\.enabled/);
+  assert.doesNotMatch(
+    fullSyncRoute,
+    /FHIR_API_KEY|authorization|bearer|patientId|mrn/i,
+  );
   const [patientWorker, observationWorker] = await Promise.all([
     readFile("src/server/fhir/patient-sync.js", "utf8"),
     readFile("src/server/fhir/observation-sync.js", "utf8"),
@@ -252,6 +315,8 @@ test("FHIR status UI is localized and avoids PHI-heavy task context", async () =
   assert.match(page, /listFhirSyncActivity/);
   assert.match(page, /messages\.syncRuns/);
   assert.match(page, /messages\.failedTasks/);
+  assert.match(page, /<FhirSyncControl/);
+  assert.match(page, /configured=\{configured\}/);
   assert.doesNotMatch(page, /fhirResourceId|labResultId|patientId|mrn/i);
   assert.match(translations, /fhirSyncHeading:\s*"FHIR synchronization"/);
   assert.match(translations, /fhirSyncHeading:\s*"مزامنة FHIR"/);

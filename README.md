@@ -182,8 +182,9 @@ all enum states, page `1`, and page size `10`. Page sizes are limited to `10`,
 `25`, or `50`. Multi-word search requires every token to match MRN, first name,
 or last name in PostgreSQL. Results are ordered by last name, first name, MRN,
 then patient ID. Source, ownership, and sync badges display the stored Prisma
-enum values without live FHIR calls. Send and Schedule lead to authenticated
-assessment delivery workflows.
+enum values without live FHIR calls. Send and Schedule open accessible dialogs
+on the current patient view and submit to the authenticated assessment-delivery
+endpoint. Direct legacy action URLs redirect to the patient detail page.
 
 Patient MRNs link to active-only detail routes at `/patients/[patientId]`,
 where `patientId` is an opaque UUID rather than PHI. The detail page shows
@@ -198,8 +199,11 @@ identifiers use the protected localized not-found state.
 ### Assessment delivery
 
 Clinicians can send the active DSMA-8 assessment immediately or schedule a
-future delivery. Both paths use the same server-only service. A trusted
-scheduler processes due work with:
+future delivery. Both paths use a focus-trapped, keyboard-accessible dialog with
+the patient recipient, single-use-link explanation, and explicit browser
+timezone for scheduled delivery. Closing a dialog has no side effect. Both
+paths use the same server-only service. A trusted scheduler processes due work
+with:
 
 ```bash
 npm run assessments:deliver-due
@@ -265,6 +269,39 @@ fasting glucose, HbA1c, optional systolic blood pressure, and completed DSMA-8
 scores. `/dashboard/clinic` aggregates active patients, assessment outcomes,
 latest patient risk, and clinician-scoped lab-import quality over a validated
 date range.
+
+## FHIR R4 integration
+
+The protected `/fhir-sync` workspace is the primary clinician entry point for a
+manual synchronization. Its prominent **Synchronize FHIR data** action processes
+persisted Patient and Observation push tasks, makes eligible failures immediately
+retryable, and then performs the bounded historical pull for the provided seed
+MRNs. Run cards distinguish pushed clinic data from imported clinical history
+and show discovered, successful, failed, and skipped totals. Configuration,
+latest outcome, current `RUNNING` state, and sanitized retry availability remain
+visible without exposing resource identifiers or patient data.
+
+```mermaid
+flowchart LR
+  UI["Authenticated FHIR Sync workspace"] --> API["Private synchronization endpoint"]
+  API --> PUSH["Persisted push worker"]
+  PUSH --> PATIENT["FHIR R4 Patient<br/>candidate-owned only"]
+  PUSH --> OBS["FHIR R4 Observation<br/>stable LabResult identifier"]
+  API --> PULL["Bounded seed-history pull"]
+  PULL --> LOCAL["Local patient and dashboard workflows<br/>external read-only ownership"]
+  PATIENT --> FHIR["Configured FHIR R4 service"]
+  OBS --> FHIR
+  FHIR --> PULL
+  PUSH --> META["Persisted runs, tasks, retry metadata"]
+  PULL --> META
+  META --> UI
+```
+
+All five required FHIR settings are resolved together. With none present, FHIR
+is safely disabled; a partial configuration stops startup with only missing
+environment-variable names. Credentials and the candidate identifier are
+server-only. Automated tests inject a mocked client and never call the shared
+FHIR service.
 
 ## Scheduled assessment execution
 
