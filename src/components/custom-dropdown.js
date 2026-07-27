@@ -2,6 +2,7 @@
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
+import { useRef, useState } from "react";
 
 import {
   FILTER_CONTROL_CLASS,
@@ -37,17 +38,30 @@ export default function CustomDropdown({
   items,
   name,
   onValueChange,
+  noMatchesLabel,
+  searchPlaceholder,
+  searchable = false,
   triggerLabel,
   value,
   variant = "form",
 }) {
+  const [search, setSearch] = useState("");
+  const searchRef = useRef(null);
   const navigation = variant === "navigation";
+  const visibleItems =
+    searchable && search
+      ? items.filter((item) =>
+          `${item.label} ${item.searchText ?? ""}`
+            .toLocaleLowerCase()
+            .includes(search.toLocaleLowerCase()),
+        )
+      : items;
   const triggerClassName = navigation
     ? `${navigationItemClass(active)} inline-flex items-center gap-1`
     : `${FILTER_CONTROL_CLASS} flex min-h-10 w-full items-center justify-between gap-2 text-start`;
 
   return (
-    <DropdownMenu.Root dir={direction}>
+    <DropdownMenu.Root dir={direction} onOpenChange={() => setSearch("")}>
       <DropdownMenu.Trigger
         aria-label={ariaLabel}
         className={triggerClassName}
@@ -66,9 +80,29 @@ export default function CustomDropdown({
               : "min-w-[var(--radix-dropdown-menu-trigger-width)]"
           }`}
           sideOffset={6}
+          onOpenAutoFocus={(event) => {
+            if (searchable) {
+              event.preventDefault();
+              searchRef.current?.focus();
+            }
+          }}
         >
+          {searchable ? (
+            <input
+              aria-label={searchPlaceholder}
+              className={`${FILTER_CONTROL_CLASS} mb-1 w-full`}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Escape") event.stopPropagation();
+              }}
+              placeholder={searchPlaceholder}
+              ref={searchRef}
+              type="search"
+              value={search}
+            />
+          ) : null}
           {navigation ? (
-            items.map((item) => (
+            visibleItems.map((item) => (
               <DropdownMenu.Item asChild key={item.href}>
                 <Link
                   aria-current={item.selected ? "page" : undefined}
@@ -84,7 +118,7 @@ export default function CustomDropdown({
               onValueChange={onValueChange}
               value={String(value)}
             >
-              {items.map((item) => {
+              {visibleItems.map((item) => {
                 const selected = String(item.value) === String(value);
 
                 return (
@@ -102,6 +136,11 @@ export default function CustomDropdown({
               })}
             </DropdownMenu.RadioGroup>
           )}
+          {visibleItems.length === 0 ? (
+            <p className="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">
+              {noMatchesLabel}
+            </p>
+          ) : null}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>

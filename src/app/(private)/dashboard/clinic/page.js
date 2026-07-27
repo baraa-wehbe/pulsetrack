@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { STATUS_BADGE_RADIUS_CLASS } from "@/components/badge-styles";
+import { DonutChart, HorizontalBarChart } from "@/components/dashboard-charts";
 import PageHeader from "@/components/page-header";
 import { getTranslations } from "@/i18n/translations";
 import {
@@ -11,6 +12,7 @@ import { getLabImportStatusPresentation } from "@/lib/lab-import-presentation";
 import { prisma } from "@/lib/prisma";
 import { requireCurrentClinician } from "@/server/auth/current-clinician";
 import { getClinicDashboardData } from "@/server/dashboards/clinic";
+import { getPatientDashboardData } from "@/server/dashboards/patient";
 import { getRequestPreferences } from "@/server/preferences/current";
 
 export const metadata = {
@@ -72,9 +74,12 @@ export default async function ClinicDashboardPage({ searchParams }) {
   const range = parsedRange.success
     ? parsedRange.data
     : getClinicDashboardDefaultRange();
-  const dashboard = parsedRange.success
-    ? await getClinicDashboardData(prisma, clinician.id, range)
-    : null;
+  const [dashboard, patientAnalytics] = parsedRange.success
+    ? await Promise.all([
+        getClinicDashboardData(prisma, clinician.id, range),
+        getPatientDashboardData(prisma),
+      ])
+    : [null, null];
   const hasRangeActivity =
     dashboard &&
     (Object.values(dashboard.assessments.counts).some((count) => count > 0) ||
@@ -231,6 +236,146 @@ export default async function ClinicDashboardPage({ searchParams }) {
                 )}%`}
               />
             </div>
+            <div className="mt-6 grid gap-6 lg:grid-cols-3">
+              <div>
+                <h3 className="mb-4 font-bold">
+                  {messages.assessmentStatusDistribution}
+                </h3>
+                <DonutChart
+                  accessibleLabel={messages.assessmentStatusDistribution}
+                  items={[
+                    {
+                      label: messages.assessmentScheduled,
+                      value: dashboard.assessments.counts.SCHEDULED,
+                    },
+                    {
+                      label: messages.assessmentSent,
+                      value: dashboard.assessments.counts.SENT,
+                    },
+                    {
+                      label: messages.assessmentCompleted,
+                      value: dashboard.assessments.counts.COMPLETED,
+                    },
+                    {
+                      label: messages.assessmentExpired,
+                      value: dashboard.assessments.counts.EXPIRED,
+                    },
+                    {
+                      label: messages.assessmentFailed,
+                      value: dashboard.assessments.counts.FAILED,
+                    },
+                  ]}
+                />
+              </div>
+              <div>
+                <h3 className="mb-4 font-bold">{messages.labImportQuality}</h3>
+                <HorizontalBarChart
+                  accessibleLabel={messages.labImportQuality}
+                  items={[
+                    {
+                      label: messages.accepted,
+                      value: dashboard.labQuality.acceptedRows,
+                    },
+                    {
+                      label: messages.rejected,
+                      value: dashboard.labQuality.rejectedRows,
+                    },
+                    {
+                      label: messages.duplicates,
+                      value: dashboard.labQuality.duplicateRows,
+                    },
+                  ]}
+                />
+              </div>
+              <div>
+                <h3 className="mb-4 font-bold">
+                  {messages.labRangeDistribution}
+                </h3>
+                <DonutChart
+                  accessibleLabel={messages.labRangeDistribution}
+                  items={[
+                    {
+                      label: messages.inReferenceRange,
+                      value: patientAnalytics.labs.inRange,
+                    },
+                    {
+                      label: messages.aboveReference,
+                      value: patientAnalytics.labs.outOfRange,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+          </section>
+
+          <section
+            aria-labelledby="clinic-follow-up-heading"
+            className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+          >
+            <h2
+              className="text-xl font-bold text-slate-950 dark:text-white"
+              id="clinic-follow-up-heading"
+            >
+              {messages.patientsNeedingFollowUp}
+            </h2>
+            {patientAnalytics.followUp.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                {messages.noFollowUp}
+              </p>
+            ) : (
+              <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+                <HorizontalBarChart
+                  accessibleLabel={messages.patientsNeedingFollowUp}
+                  items={[
+                    {
+                      label: messages.overdueAssessmentReason,
+                      value: patientAnalytics.followUp.filter((item) =>
+                        item.reasons.includes("OVERDUE_ASSESSMENT"),
+                      ).length,
+                    },
+                    {
+                      label: messages.abnormalLabReason,
+                      value: patientAnalytics.followUp.filter((item) =>
+                        item.reasons.includes("ABNORMAL_LAB"),
+                      ).length,
+                    },
+                    {
+                      label: messages.deliveryFailureReason,
+                      value: patientAnalytics.followUp.filter((item) =>
+                        item.reasons.includes("DELIVERY_FAILURE"),
+                      ).length,
+                    },
+                  ]}
+                />
+                <ul className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {patientAnalytics.followUp.slice(0, 8).map((item) => (
+                    <li className="py-2 first:pt-0" key={item.patient.id}>
+                      <Link
+                        className="font-bold text-teal-700 hover:underline dark:text-teal-300"
+                        href={`/patients/${item.patient.id}`}
+                      >
+                        {item.patient.lastName}, {item.patient.firstName}{" "}
+                        <bdi dir="ltr">({item.patient.mrn})</bdi>
+                      </Link>
+                      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {item.reasons
+                          .map(
+                            (reason) =>
+                              ({
+                                OVERDUE_ASSESSMENT:
+                                  messages.overdueAssessmentReason,
+                                ABNORMAL_LAB: messages.abnormalLabReason,
+                                DELIVERY_FAILURE:
+                                  messages.deliveryFailureReason,
+                              })[reason],
+                          )
+                          .join(" · ")}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
 
           <section

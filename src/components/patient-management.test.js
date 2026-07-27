@@ -247,7 +247,6 @@ test("all status badge renderers use the shared pill radius", async () => {
     readSource("app/(private)/lab-uploads/page.js"),
     readSource("app/(private)/lab-uploads/[importId]/page.js"),
     readSource("app/(private)/dashboard/clinic/page.js"),
-    readSource("app/(private)/dashboard/patient/page.js"),
   ]);
 
   assert.match(styles, /STATUS_BADGE_RADIUS_CLASS = "rounded-full"/);

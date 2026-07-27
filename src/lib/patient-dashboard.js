@@ -46,3 +46,15 @@ export const summarizeMetric = (points, reference = null) => {
 
   return { latest, previous, change, referenceState };
 };
+
+export const percentage = (numerator, denominator) =>
+  denominator === 0 ? null : (numerator / denominator) * 100;
+
+export const classifyRange = (value, reference) => {
+  if (!reference || (reference.low == null && reference.high == null)) {
+    return null;
+  }
+  if (reference.low != null && value < reference.low) return "LOW";
+  if (reference.high != null && value > reference.high) return "HIGH";
+  return "IN_RANGE";
+};

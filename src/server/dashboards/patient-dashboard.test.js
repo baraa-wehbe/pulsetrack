@@ -3,8 +3,10 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
+  classifyRange,
   orderDashboardPoints,
   parsePatientDashboardQuery,
+  percentage,
   summarizeMetric,
 } from "@/lib/patient-dashboard";
 import {
@@ -96,10 +98,8 @@ test("dashboard query scopes to normalized active MRN and selects only supported
   assert.deepEqual(query.select.labResults.where, {
     testCode: { in: ["GLU-F", "HBA1C", "SBP"] },
   });
-  assert.deepEqual(query.select.assessments.where, {
-    status: "COMPLETED",
-    response: { isNot: null },
-  });
+  assert.equal(query.select.assessments.where, undefined);
+  assert.equal(query.select.assessments.select.status, true);
   assert.equal(result.patient.mrn, "PT-100");
   assert.equal(result.patient.id, "8700ba23-32c7-4d26-9497-35fcf7660f51");
 });
@@ -223,9 +223,103 @@ test("query validation, point ordering, and range boundaries are deterministic",
     }).referenceState,
     "IN_RANGE",
   );
+  assert.equal(classifyRange(69, { low: 70, high: 99 }), "LOW");
+  assert.equal(classifyRange(99, { low: 70, high: 99 }), "IN_RANGE");
+  assert.equal(classifyRange(100, { low: 70, high: 99 }), "HIGH");
+  assert.equal(classifyRange(10, null), null);
+  assert.equal(percentage(3, 4), 75);
+  assert.equal(percentage(0, 0), null);
 });
 
-test("dashboard UI has optional SBP, safe states, accessible charts, and no sensitive data", async () => {
+test("aggregate analytics and follow-up rules are deterministic", async () => {
+  const now = new Date("2026-07-28T12:00:00.000Z");
+  const prisma = {
+    patient: {
+      findMany: async () => [
+        {
+          id: "patient-a",
+          mrn: "PT-1",
+          firstName: "Maya",
+          lastName: "Ali",
+          assessments: [
+            {
+              id: "assessment-a",
+              status: "SENT",
+              expiresAt: new Date("2026-07-27T00:00:00.000Z"),
+              scheduledFor: new Date("2026-07-20T00:00:00.000Z"),
+              createdAt: new Date("2026-07-20T00:00:00.000Z"),
+              completedAt: null,
+              sendAttempts: 2,
+              lastSendError: "safe test value",
+              response: null,
+            },
+          ],
+          labResults: [
+            {
+              ...lab({
+                code: "GLU-F",
+                date: "2026-07-27",
+                id: "lab-a",
+                value: 120,
+              }),
+              refLow: 70,
+              refHigh: 99,
+              createdAt: new Date("2026-07-27T00:00:00.000Z"),
+              test: {
+                name: "Fasting glucose",
+                defaultUnit: "mg/dL",
+                defaultRefLow: 70,
+                defaultRefHigh: 99,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  const result = await getPatientDashboardData(prisma, null, now);
+
+  assert.equal(result.scope, "ALL");
+  assert.equal(result.activePatientCount, 1);
+  assert.equal(result.labs.outOfRange, 1);
+  assert.deepEqual(result.followUp[0].reasons, [
+    "OVERDUE_ASSESSMENT",
+    "DELIVERY_FAILURE",
+    "ABNORMAL_LAB",
+  ]);
+  assert.equal(result.assessments.completionRate, 0);
+});
+
+test("empty aggregate and partially populated patients remain honest and safe", async () => {
+  const empty = await getPatientDashboardData({
+    patient: { findMany: async () => [] },
+  });
+  assert.equal(empty.activePatientCount, 0);
+  assert.equal(empty.assessments.completionRate, null);
+  assert.equal(empty.assessments.averageScore, null);
+  assert.deepEqual(empty.followUp, []);
+
+  const partial = await getPatientDashboardData({
+    patient: {
+      findMany: async () => [
+        {
+          id: "patient-a",
+          mrn: "PT-1",
+          firstName: "Maya",
+          lastName: "Ali",
+          assessments: [],
+          labResults: [],
+        },
+      ],
+    },
+  });
+  assert.equal(partial.activePatientCount, 1);
+  assert.equal(partial.metrics.questionnaire.summary, null);
+  assert.equal(partial.labs.total, 0);
+});
+
+test("dashboard UI has aggregate scope, searchable filtering, accessible charts, and no sensitive data", async () => {
   const [page, chart, loading, error, privateLayout] = await Promise.all([
     readSource("app/(private)/dashboard/patient/page.js"),
     readSource("components/time-series-chart.js"),
@@ -235,10 +329,11 @@ test("dashboard UI has optional SBP, safe states, accessible charts, and no sens
   ]);
 
   assert.match(page, /parsePatientDashboardQuery/);
-  assert.match(page, /systolicBloodPressure\.points\.length > 0/);
-  assert.match(page, /noDashboardDataTitle/);
-  assert.match(page, /partialDashboardData/);
-  assert.match(page, /AssessmentBadge/);
+  assert.match(page, /PatientDashboardFilter/);
+  assert.match(page, /dashboardScopeAll/);
+  assert.match(page, /DonutChart/);
+  assert.match(page, /HorizontalBarChart/);
+  assert.match(page, /patientsNeedingFollowUp/);
   assert.match(chart, /role="img"/);
   assert.match(chart, /<table className="sr-only">/);
   assert.match(loading, /role="status"/);
