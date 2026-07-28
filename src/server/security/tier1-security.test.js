@@ -50,7 +50,8 @@ test("patient navigation uses opaque identifiers and never embeds MRNs in URLs",
     "app/(private)/patients/[patientId]/page.js",
     "components/patient-form.js",
     "components/patient-assessment-form.js",
-    "app/(private)/dashboard/patient/page.js",
+    "components/patient-dashboard-filter.js",
+    "app/(private)/dashboard/patient/dashboard-route.js",
     "lib/patient-list.js",
   ];
   const combined = (
@@ -60,8 +61,8 @@ test("patient navigation uses opaque identifiers and never embeds MRNs in URLs",
   assert.doesNotMatch(combined, /encodeURIComponent\(patient\.mrn\)/);
   assert.doesNotMatch(combined, /buildPatientDetailHref\(patient\.mrn/);
   assert.match(combined, /buildPatientDetailHref\(patient\.id/);
-  assert.match(combined, /name="patient"/);
-  assert.match(combined, /value=\{patient\.id\}/);
+  assert.match(combined, /value: patient\.id/);
+  assert.match(combined, /\?patient=\$\{encodeURIComponent\(value\)\}/);
 });
 
 test("public assessment UI and responses expose no patient identity or token", async () => {

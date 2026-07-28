@@ -31,21 +31,29 @@ migration deploy command is intentionally non-interactive.
 npm install
 Copy-Item .env.example .env
 npm run db:up
-npm run db:deploy
-npm run prisma:generate
-npm run db:seed
-npm run clinician:create -- --email developer@example.local --password "REPLACE_WITH_A_UNIQUE_LOCAL_PASSWORD" --name "Development Clinician"
 npm run dev
 ```
 
-Open `http://localhost:3000` and sign in with the local clinician you created.
-Use a unique development password and do not commit it. On macOS or Linux,
-replace `Copy-Item .env.example .env` with `cp .env.example .env`.
+Open `http://localhost:3000` and sign in with the startup clinician declared in
+`prisma/seed-data/admin-user.json`. On macOS or Linux, replace `Copy-Item
+.env.example .env` with `cp .env.example .env`.
 
-`npm run dev` starts both Next.js and the local scheduled-assessment worker.
-The worker loads `.env.local` before `.env`, runs one check immediately, then
-checks for due assessments once per minute. It uses the same idempotent
-delivery service and email configuration as the protected HTTP job.
+The `npm run dev` and `npm start` commands use the shared startup launcher,
+which completes `npm run bootstrap` before launching Next.js. It validates the
+Prisma schema, generates Prisma Client, deploys pending migrations, runs the
+complete idempotent reference-data seed, and provisions the startup clinician.
+Existing migrations, seed rows, and the clinician account are reported and
+treated as success. The Vercel build uses the same launcher before compiling
+Next.js.
+
+After bootstrap, `npm run dev` starts both Next.js and the local
+scheduled-assessment worker. The worker loads `.env.local` before `.env`, runs
+one check immediately, then checks for due assessments once per minute. It uses
+the same idempotent delivery service and email configuration as the protected
+HTTP job.
+
+The committed bootstrap credentials are intended only for the requested
+initial account. Change the password before exposing a deployment publicly.
 
 The example environment is immediately usable with the Compose database. Before
 using email delivery or any non-local deployment, replace `AUTH_SECRET`,
@@ -74,19 +82,19 @@ Do not upload or commit `.env` or `.env.local`. Those files are intentionally
 ignored because Git history is not a secret store; `.env.example` is the
 deployable variable manifest.
 
-Apply the committed database migrations to the managed database before serving
-production traffic:
+The Vercel build applies migrations, seeds reference data, and provisions the
+startup clinician against the configured deployment database. The same
+idempotent sequence can be run manually:
 
 ```powershell
 $env:DATABASE_URL="<managed-production-database-url>"
-npm run db:deploy
-npm run db:seed
+npm run bootstrap
 ```
 
-Create the first production clinician with a unique password:
+To provision only the committed startup clinician:
 
 ```powershell
-npm run clinician:create -- --email clinician@example.com --password "<unique-password>" --name "Clinic Administrator"
+npm run clinician:bootstrap
 ```
 
 ## Local PostgreSQL
@@ -385,7 +393,9 @@ npm run format:check # Check formatting
 npm run db:up        # Start local PostgreSQL
 npm run db:status    # Show database container status
 npm run db:down      # Stop local PostgreSQL
+npm run bootstrap    # Validate, generate, migrate, seed, and provision startup user
 npm run clinician:create -- --email <email> --password "<password>" --name "<name>"
+npm run clinician:bootstrap # Provision the startup user idempotently
 npm run assessments:deliver-due # Deliver scheduled assessments that are due
 npm run benchmark:routes # Benchmark authenticated routes against a running server
 npm test             # Run the unit test suite
