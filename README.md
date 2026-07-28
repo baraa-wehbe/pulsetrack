@@ -210,10 +210,10 @@ account-creation API.
 
 Authenticated active clinicians can list, create, view, edit, and archive
 patient records under `/patients`. Editable fields are MRN, first name, last
-name, date of birth, biological sex, optional email, and optional phone.
+name, date of birth, biological sex, required email, and optional phone.
 
 One shared Zod module validates browser and API input. MRNs are trimmed and
-uppercased, emails are trimmed and lowercased, optional blank contact values
+uppercased, emails are required, trimmed, and lowercased, blank phone values
 become `null`, and future or invalid calendar dates are rejected. PostgreSQL’s
 existing unique MRN constraint remains authoritative; normalized conflicts
 return a safe `409` field error.
@@ -232,9 +232,10 @@ all enum states, page `1`, and page size `10`. Page sizes are limited to `10`,
 `25`, or `50`. Multi-word search requires every token to match MRN, first name,
 or last name in PostgreSQL. Results are ordered by last name, first name, MRN,
 then patient ID. Source, ownership, and sync badges display the stored Prisma
-enum values without live FHIR calls. Send and Schedule open accessible dialogs
-on the current patient view and submit to the authenticated assessment-delivery
-endpoint. Direct legacy action URLs redirect to the patient detail page.
+enum values without live FHIR calls. Send opens an accessible dialog on the
+current patient view and submits to the authenticated assessment-delivery
+endpoint. Scheduling controls are not exposed in the clinician UI. Direct
+legacy action URLs redirect to the patient detail page.
 
 Patient MRNs link to active-only detail routes at `/patients/[patientId]`,
 where `patientId` is an opaque UUID rather than PHI. The detail page shows
@@ -248,11 +249,11 @@ identifiers use the protected localized not-found state.
 
 ### Assessment delivery
 
-Clinicians can send the active DSMA-8 assessment immediately or schedule a
-future delivery. Both paths use a focus-trapped, keyboard-accessible dialog with
-the patient recipient, single-use-link explanation, and explicit browser
-timezone for scheduled delivery. Closing a dialog has no side effect. Both
-paths use the same server-only service. A trusted scheduler processes due work
+Clinicians can send the active DSMA-8 assessment immediately from either the
+patient list or patient details. The focus-trapped, keyboard-accessible dialog
+shows the patient recipient and explains the single-use link. Closing it has no
+side effect. Scheduling controls are currently not exposed, but the server-only
+delivery worker remains available to process existing queued or retry records
 with:
 
 ```bash

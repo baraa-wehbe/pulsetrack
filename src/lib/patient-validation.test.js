@@ -26,12 +26,16 @@ const validInput = {
   phone: "+961 1 234 567",
 };
 
-test("valid patient input passes and optional values remain consistent", () => {
+test("valid patient input requires email while phone remains optional", () => {
   const schema = createPatientSchemaForDate(TODAY);
   const parsed = schema.parse(validInput);
 
   assert.deepEqual(parsed, validInput);
-  assert.equal(schema.parse({ ...validInput, email: "  " }).email, null);
+  for (const email of ["", "  ", null, undefined]) {
+    const result = schema.safeParse({ ...validInput, email });
+    assert.equal(result.success, false);
+    assert.equal(getFieldErrors(result.error).email, "required");
+  }
   assert.equal(schema.parse({ ...validInput, phone: "" }).phone, null);
 });
 
@@ -133,6 +137,7 @@ test("update, route, list, and archive schemas use strict policies", () => {
   assert.deepEqual(updateSchema.parse({ email: " NEW@Example.Test " }), {
     email: "new@example.test",
   });
+  assert.equal(updateSchema.safeParse({ email: "" }).success, false);
   assert.equal(updateSchema.safeParse({}).success, false);
   assert.equal(updateSchema.safeParse({ archivedAt: null }).success, false);
   assert.equal(

@@ -102,15 +102,8 @@ export default async function PatientDetailsPage({ params, searchParams }) {
           <div className="flex flex-wrap gap-3">
             <PatientAssessmentModal
               messages={messages}
-              mode="IMMEDIATE"
               patient={patient}
               triggerClassName="control-pill rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600"
-            />
-            <PatientAssessmentModal
-              messages={messages}
-              mode="SCHEDULED"
-              patient={patient}
-              triggerClassName="control-pill rounded-full border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
             />
             <Link
               className="control-pill rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"

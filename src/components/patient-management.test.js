@@ -54,6 +54,7 @@ test("patient form exposes labels, field errors, and shared normalization", asyn
   assert.match(source, /aria-describedby=/);
   assert.match(source, /normalizePatientMrn/);
   assert.match(source, /normalizePatientEmail/);
+  assert.match(source, /id="email"[\s\S]*required[\s\S]*type="email"/);
   assert.match(source, /focusFirstError/);
   assert.match(source, /if \(onSuccess\)/);
   assert.match(source, /onSuccess\(body\.patient\)/);
@@ -159,10 +160,13 @@ test("patient list has responsive cards and a semantic table", async () => {
 });
 
 test("only MRN links to details and assessment actions open in-place dialogs", async () => {
-  const [source, assessmentActions] = await Promise.all([
-    readSource("app/(private)/patients/page.js"),
-    readSource("components/patient-assessment-actions.js"),
-  ]);
+  const [source, detail, assessmentActions, assessmentModal] =
+    await Promise.all([
+      readSource("app/(private)/patients/page.js"),
+      readSource("app/(private)/patients/[patientId]/page.js"),
+      readSource("components/patient-assessment-actions.js"),
+      readSource("components/patient-assessment-modal.js"),
+    ]);
 
   assert.match(source, /buildPatientDetailHref\(patient\.id, listQuery\)/);
   assert.doesNotMatch(source, /href=\{`\/patients\/\$\{patient\.id\}`\}/);
@@ -171,8 +175,11 @@ test("only MRN links to details and assessment actions open in-place dialogs", a
   assert.match(source, /<PatientAssessmentProvider/);
   assert.match(source, /<PatientAssessmentActions/);
   assert.match(assessmentActions, /Dialog\.Root/);
-  assert.match(assessmentActions, /openAssessment\(patient, "IMMEDIATE"\)/);
-  assert.match(assessmentActions, /openAssessment\(patient, "SCHEDULED"\)/);
+  assert.match(assessmentActions, /openAssessment\(patient\)/);
+  assert.doesNotMatch(assessmentActions, /SCHEDULED|messages\.schedule/);
+  assert.equal(detail.match(/<PatientAssessmentModal/g)?.length, 1);
+  assert.doesNotMatch(detail, /mode="SCHEDULED"/);
+  assert.doesNotMatch(assessmentModal, /SCHEDULED|messages\.schedule/);
   assert.doesNotMatch(source, /\/send`|\/schedule`/);
   assert.match(source, /viewPatientDetailsTooltip/);
   assert.match(source, /role="tooltip"/);
@@ -251,7 +258,7 @@ test("patient list actions use the shared pill control radius", async () => {
   }
   assert.match(page, /newPatientButtonClass[\s\S]*CONTROL_RADIUS_CLASS/);
   assert.equal(page.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 6);
-  assert.equal(actions.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 2);
+  assert.equal(actions.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 1);
   assert.match(modal, /controlRadiusClass=\{CONTROL_RADIUS_CLASS\}/);
   assert.match(form, /controlRadiusClass = "rounded-full"/);
   assert.equal(form.match(/\$\{controlRadiusClass\}/g)?.length, 3);

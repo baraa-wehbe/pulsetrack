@@ -24,7 +24,6 @@ const CloseIcon = () => (
 
 export default function PatientAssessmentModal({
   messages,
-  mode,
   patient,
   triggerClassName,
 }) {
@@ -32,7 +31,6 @@ export default function PatientAssessmentModal({
   const [formKey, setFormKey] = useState(0);
   const [notice, setNotice] = useState("");
   const [open, setOpen] = useState(false);
-  const isScheduled = mode === "SCHEDULED";
 
   const resetAndClose = () => {
     setOpen(false);
@@ -48,37 +46,22 @@ export default function PatientAssessmentModal({
     }
   };
 
-  const handleSuccess = (outcome) => {
+  const handleSuccess = () => {
     resetAndClose();
-    setNotice(
-      outcome === "sent"
-        ? messages.assessmentSentNotice
-        : messages.assessmentScheduledNotice,
-    );
+    setNotice(messages.assessmentSentNotice);
     router.refresh();
   };
-
-  const title = isScheduled
-    ? messages.scheduleQuestionnaire
-    : messages.sendQuestionnaire;
-  const description = isScheduled
-    ? messages.scheduleAssessmentDescription
-    : messages.sendAssessmentDescription;
 
   return (
     <>
       <Dialog.Root onOpenChange={handleOpenChange} open={open}>
         <Dialog.Trigger asChild>
           <button
-            aria-label={`${
-              isScheduled
-                ? messages.scheduleQuestionnaireFor
-                : messages.sendQuestionnaireTo
-            } ${patient.mrn}`}
+            aria-label={`${messages.sendQuestionnaireTo} ${patient.mrn}`}
             className={triggerClassName}
             type="button"
           >
-            {isScheduled ? messages.schedule : messages.send}
+            {messages.send}
           </button>
         </Dialog.Trigger>
         <Dialog.Portal>
@@ -93,13 +76,14 @@ export default function PatientAssessmentModal({
                   <bdi dir="ltr">{patient.mrn}</bdi>
                 </p>
                 <Dialog.Title className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-                  {title}
+                  {messages.sendQuestionnaire}
                 </Dialog.Title>
                 <Dialog.Description
                   className="mt-2 text-sm text-slate-600 dark:text-slate-300"
                   id="assessment-dialog-description"
                 >
-                  {description} {messages.singleUseAssessmentLink}
+                  {messages.sendAssessmentDescription}{" "}
+                  {messages.singleUseAssessmentLink}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
@@ -116,7 +100,7 @@ export default function PatientAssessmentModal({
               <PatientAssessmentForm
                 key={formKey}
                 messages={messages}
-                mode={mode}
+                mode="IMMEDIATE"
                 onCancel={resetAndClose}
                 onSuccess={handleSuccess}
                 patient={patient}

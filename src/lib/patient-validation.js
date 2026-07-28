@@ -82,13 +82,13 @@ export const patientMrnSchema = z
       .regex(/^[A-Z0-9-]+$/, "invalid_mrn"),
   );
 
-const optionalEmailSchema = z
+const requiredEmailSchema = z
   .union([z.string(), z.null(), z.undefined()])
   .transform((value) =>
-    typeof value === "string" ? normalizePatientEmail(value) || null : null,
+    typeof value === "string" ? normalizePatientEmail(value) : "",
   )
   .pipe(
-    z.union([z.null(), z.string().max(320, "too_long").email("invalid_email")]),
+    z.string().min(1, "required").max(320, "too_long").email("invalid_email"),
   );
 
 const optionalPhoneSchema = z
@@ -124,7 +124,7 @@ export const createPatientSchemaForDate = (today = getLocalDateOnly()) =>
       lastName: requiredText(100),
       dateOfBirth: createDateOfBirthSchema(today),
       sex: z.enum(PATIENT_SEX_VALUES, { error: "invalid_sex" }),
-      email: optionalEmailSchema,
+      email: requiredEmailSchema,
       phone: optionalPhoneSchema,
     })
     .strict();

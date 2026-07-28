@@ -296,13 +296,16 @@ export default function PatientForm({
 
         <div>
           <label className={labelClass} htmlFor="email">
-            {messages.email}
+            {messages.email}{" "}
+            <span className="text-red-700 dark:text-red-300" aria-hidden="true">
+              *
+            </span>
           </label>
           <p
             className="mt-1 text-xs text-slate-500 dark:text-slate-400"
             id="email-hint"
           >
-            {messages.optionalField}
+            {messages.requiredField}
           </p>
           <input
             aria-describedby={fieldDescription("email", fieldErrors)}
@@ -318,6 +321,7 @@ export default function PatientForm({
                 event.currentTarget.value,
               );
             }}
+            required
             type="email"
           />
           {renderError("email")}

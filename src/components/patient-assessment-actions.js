@@ -40,34 +40,22 @@ export function PatientAssessmentProvider({ children, messages }) {
   const [selection, setSelection] = useState(null);
   const [formKey, setFormKey] = useState(0);
   const [notice, setNotice] = useState("");
-  const isScheduled = selection?.mode === "SCHEDULED";
 
   const closeAndReset = () => {
     setSelection(null);
     setFormKey((current) => current + 1);
   };
 
-  const openAssessment = (patient, mode) => {
+  const openAssessment = (patient) => {
     setNotice("");
-    setSelection({ mode, patient });
+    setSelection(patient);
   };
 
-  const handleSuccess = (outcome) => {
+  const handleSuccess = () => {
     closeAndReset();
-    setNotice(
-      outcome === "sent"
-        ? messages.assessmentSentNotice
-        : messages.assessmentScheduledNotice,
-    );
+    setNotice(messages.assessmentSentNotice);
     router.refresh();
   };
-
-  const title = isScheduled
-    ? messages.scheduleQuestionnaire
-    : messages.sendQuestionnaire;
-  const description = isScheduled
-    ? messages.scheduleAssessmentDescription
-    : messages.sendAssessmentDescription;
 
   return (
     <AssessmentDialogContext.Provider value={{ messages, openAssessment }}>
@@ -89,16 +77,17 @@ export function PatientAssessmentProvider({ children, messages }) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">
-                      <bdi dir="ltr">{selection.patient.mrn}</bdi>
+                      <bdi dir="ltr">{selection.mrn}</bdi>
                     </p>
                     <Dialog.Title className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-                      {title}
+                      {messages.sendQuestionnaire}
                     </Dialog.Title>
                     <Dialog.Description
                       className="mt-2 text-sm text-slate-600 dark:text-slate-300"
                       id="assessment-dialog-description"
                     >
-                      {description} {messages.singleUseAssessmentLink}
+                      {messages.sendAssessmentDescription}{" "}
+                      {messages.singleUseAssessmentLink}
                     </Dialog.Description>
                   </div>
                   <Dialog.Close asChild>
@@ -115,10 +104,10 @@ export function PatientAssessmentProvider({ children, messages }) {
                   <PatientAssessmentForm
                     key={formKey}
                     messages={messages}
-                    mode={selection.mode}
+                    mode="IMMEDIATE"
                     onCancel={closeAndReset}
                     onSuccess={handleSuccess}
-                    patient={selection.patient}
+                    patient={selection}
                   />
                 </div>
               </>
@@ -151,19 +140,10 @@ export function PatientAssessmentActions({ align = "end", patient }) {
         aria-haspopup="dialog"
         aria-label={`${messages.sendQuestionnaireTo} ${patient.mrn}`}
         className={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:bg-teal-50 hover:text-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:border-teal-500 dark:hover:bg-teal-950 dark:hover:text-teal-100`}
-        onClick={() => openAssessment(patient, "IMMEDIATE")}
+        onClick={() => openAssessment(patient)}
         type="button"
       >
         {messages.send}
-      </button>
-      <button
-        aria-haspopup="dialog"
-        aria-label={`${messages.scheduleQuestionnaireFor} ${patient.mrn}`}
-        className={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800`}
-        onClick={() => openAssessment(patient, "SCHEDULED")}
-        type="button"
-      >
-        {messages.schedule}
       </button>
     </div>
   );
