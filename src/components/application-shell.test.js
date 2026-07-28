@@ -84,8 +84,8 @@ test("main application pages use eyebrow-free shared headers", async () => {
     readSource("app/(private)/patients/page.js"),
     readSource("app/(private)/lab-uploads/page.js"),
     readSource("app/(private)/fhir-sync/page.js"),
-    readSource("app/(private)/dashboard/clinic/page.js"),
-    readSource("app/(private)/dashboard/patient/page.js"),
+    readSource("app/(private)/dashboard/clinic/dashboard-route.js"),
+    readSource("app/(private)/dashboard/patient/dashboard-route.js"),
   ]);
 
   for (const source of sources) {

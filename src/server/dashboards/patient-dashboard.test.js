@@ -320,15 +320,24 @@ test("empty aggregate and partially populated patients remain honest and safe", 
 });
 
 test("dashboard UI has aggregate scope, searchable filtering, accessible charts, and no sensitive data", async () => {
-  const [page, chart, loading, sharedLoading, error, privateLayout] =
-    await Promise.all([
-      readSource("app/(private)/dashboard/patient/page.js"),
-      readSource("components/time-series-chart.js"),
-      readSource("app/(private)/dashboard/patient/loading.js"),
-      readSource("components/route-loading.js"),
-      readSource("app/(private)/dashboard/patient/error.js"),
-      readSource("app/(private)/layout.js"),
-    ]);
+  const [
+    pageShell,
+    route,
+    chart,
+    loading,
+    sharedLoading,
+    error,
+    privateLayout,
+  ] = await Promise.all([
+    readSource("app/(private)/dashboard/patient/page.js"),
+    readSource("app/(private)/dashboard/patient/dashboard-route.js"),
+    readSource("components/time-series-chart.js"),
+    readSource("app/(private)/dashboard/patient/loading.js"),
+    readSource("components/route-loading.js"),
+    readSource("app/(private)/dashboard/patient/error.js"),
+    readSource("app/(private)/layout.js"),
+  ]);
+  const page = `${pageShell}\n${route}`;
 
   assert.match(page, /parsePatientDashboardQuery/);
   assert.match(page, /PatientDashboardFilter/);
@@ -380,4 +389,58 @@ test("patient selector searches from its main field without a second menu input"
   );
   assert.match(filter, /value === "all"[\s\S]*?"\/dashboard\/patient"/);
   assert.match(filter, /searchable/);
+});
+
+test("dashboard charts share responsive motion, stable skeletons, and deferred loading", async () => {
+  const [
+    chart,
+    timeSeries,
+    theme,
+    gauge,
+    deferred,
+    chartCard,
+    chartSkeleton,
+    patientPage,
+    patientRoute,
+    clinicPage,
+    clinicRoute,
+  ] = await Promise.all([
+    readSource("components/dashboard-charts.js"),
+    readSource("components/time-series-chart.js"),
+    readSource("components/chart-theme.js"),
+    readSource("components/percentage-gauge.js"),
+    readSource("components/deferred-chart.js"),
+    readSource("components/chart-card.js"),
+    readSource("components/chart-skeleton.js"),
+    readSource("app/(private)/dashboard/patient/page.js"),
+    readSource("app/(private)/dashboard/patient/dashboard-route.js"),
+    readSource("app/(private)/dashboard/clinic/page.js"),
+    readSource("app/(private)/dashboard/clinic/dashboard-route.js"),
+  ]);
+
+  for (const source of [chart, timeSeries]) {
+    assert.match(source, /ResponsiveContainer/);
+    assert.match(source, /chartTheme\.animation/);
+  }
+  assert.match(chart, /from "recharts"/);
+  assert.match(timeSeries, /strokeWidth=\{chartTheme\.seriesStrokeWidth\}/);
+  assert.match(theme, /CHART_ANIMATION_DURATION = 850/);
+  assert.match(theme, /animationEasing: "ease-out"/);
+  assert.match(theme, /strokeDasharray: "3 5"/);
+  assert.match(gauge, /strokeDasharray=\{CIRCUMFERENCE\}/);
+  assert.match(gauge, /strokeDashoffset=\{offset\}/);
+  assert.match(deferred, /IntersectionObserver/);
+  assert.match(chartCard, /min-h-\[18\.75rem\]/);
+  assert.match(chartSkeleton, /height: CHART_HEIGHT/);
+
+  for (const source of [patientPage, clinicPage]) {
+    assert.match(source, /lazy\(\(\) => import\("\.\/dashboard-route"\)\)/);
+    assert.match(source, /<Suspense/);
+    assert.match(source, /DashboardRouteSkeleton/);
+  }
+  for (const source of [patientRoute, clinicRoute]) {
+    assert.match(source, /skipDashboardQuery/);
+    assert.match(source, /<ChartCard/);
+    assert.match(source, /<DeferredChart/);
+  }
 });

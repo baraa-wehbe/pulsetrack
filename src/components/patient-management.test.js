@@ -69,7 +69,7 @@ test("new patient reuses the form in an accessible in-place modal", async () => 
       readSource("components/dialog-styles.js"),
       readSource("components/patient-form.js"),
       readSource("app/(private)/patients/new/page.js"),
-      readSource("app/(private)/dashboard/patient/page.js"),
+      readSource("app/(private)/dashboard/patient/dashboard-route.js"),
     ]);
 
   assert.equal(page.match(/<NewPatientModal/g)?.length, 2);
@@ -252,7 +252,7 @@ test("all status badge renderers use the shared pill radius", async () => {
     readSource("app/(private)/fhir-sync/page.js"),
     readSource("app/(private)/lab-uploads/page.js"),
     readSource("app/(private)/lab-uploads/[importId]/page.js"),
-    readSource("app/(private)/dashboard/clinic/page.js"),
+    readSource("app/(private)/dashboard/clinic/dashboard-route.js"),
   ]);
 
   assert.match(styles, /STATUS_BADGE_RADIUS_CLASS = "rounded-full"/);

@@ -319,6 +319,58 @@ tbody tr:hover {
   );
 }
 
+:root {
+  --chart-cursor: rgb(15 118 110 / 0.06);
+  --chart-empty: #e2e8f0;
+  --chart-grid: #e2e8f0;
+  --chart-label: #0f172a;
+  --chart-series-1: #0f766e;
+  --chart-series-2: #2563eb;
+  --chart-series-3: #d97706;
+  --chart-series-4: #be123c;
+  --chart-series-5: #6d5bd0;
+  --chart-surface: #ffffff;
+  --chart-tick: #64748b;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #cbd5e1;
+  --chart-tooltip-muted: #64748b;
+  --chart-tooltip-text: #0f172a;
+}
+
+.dark {
+  --chart-cursor: rgb(45 212 191 / 0.08);
+  --chart-empty: #334155;
+  --chart-grid: #334155;
+  --chart-label: #f8fafc;
+  --chart-series-1: #2dd4bf;
+  --chart-series-2: #60a5fa;
+  --chart-series-3: #fbbf24;
+  --chart-series-4: #fb7185;
+  --chart-series-5: #a78bfa;
+  --chart-surface: #0f172a;
+  --chart-tick: #94a3b8;
+  --chart-tooltip-bg: #0f172a;
+  --chart-tooltip-border: #334155;
+  --chart-tooltip-muted: #94a3b8;
+  --chart-tooltip-text: #f8fafc;
+}
+
+.dashboard-chart-card {
+  min-height: 24rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+  border-radius: 1rem;
+  background: var(--surface);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-panel);
+}
+
+@media (min-width: 640px) {
+  .dashboard-chart-card {
+    padding: 1.5rem;
+  }
+}
+
 .clinical-loading-orbit {
   position: relative;
   width: 2.25rem;

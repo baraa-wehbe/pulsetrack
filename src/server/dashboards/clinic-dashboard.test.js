@@ -245,15 +245,16 @@ test("recent uploads are safely serialized and ordered for validation links", as
 });
 
 test("clinic UI documents scope and denominator and provides safe accessible states", async () => {
-  const [page, loading, sharedLoading, error, translations] = await Promise.all(
-    [
+  const [pageShell, route, loading, sharedLoading, error, translations] =
+    await Promise.all([
       readSource("app/(private)/dashboard/clinic/page.js"),
+      readSource("app/(private)/dashboard/clinic/dashboard-route.js"),
       readSource("app/(private)/dashboard/clinic/loading.js"),
       readSource("components/route-loading.js"),
       readSource("app/(private)/dashboard/clinic/error.js"),
       readSource("i18n/translations.js"),
-    ],
-  );
+    ]);
+  const page = `${pageShell}\n${route}`;
 
   assert.match(page, /requireCurrentClinician/);
   assert.match(page, /parseClinicDashboardQuery/);

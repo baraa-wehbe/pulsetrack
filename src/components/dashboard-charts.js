@@ -1,85 +1,142 @@
-const colors = [
-  "#0f766e",
-  "#2563eb",
-  "#d97706",
-  "#dc2626",
-  "#7c3aed",
-  "#64748b",
-];
+"use client";
+
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Label,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import { CHART_HEIGHT, chartTheme } from "@/components/chart-theme";
+
+const initialDimension = { height: CHART_HEIGHT, width: 640 };
+
+const AccessibleDataTable = ({ accessibleLabel, items }) => (
+  <table className="sr-only">
+    <caption>{accessibleLabel}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Category</th>
+        <th scope="col">Value</th>
+      </tr>
+    </thead>
+    <tbody>
+      {items.map((item) => (
+        <tr key={item.label}>
+          <td>{item.label}</td>
+          <td>{item.value}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+);
 
 export const DonutChart = ({ accessibleLabel, items }) => {
   const total = items.reduce((sum, item) => sum + item.value, 0);
-  let offset = 0;
+  const data =
+    total === 0 ? [{ label: accessibleLabel, value: 1, empty: true }] : items;
 
   return (
-    <div className="grid gap-5 sm:grid-cols-[9rem_1fr] sm:items-center">
-      <div
-        aria-label={accessibleLabel}
-        className="clinical-chart-ring relative mx-auto size-32 rounded-full shadow-[inset_0_0_0_1px_rgb(15_118_110_/_0.08)]"
-        role="img"
-        style={{
-          background:
-            total === 0
-              ? "#e2e8f0"
-              : `conic-gradient(${items
-                  .filter((item) => item.value > 0)
-                  .map((item, index) => {
-                    const start = (offset / total) * 100;
-                    offset += item.value;
-                    const end = (offset / total) * 100;
-                    return `${colors[index % colors.length]} ${start}% ${end}%`;
-                  })
-                  .join(",")})`,
-        }}
+    <>
+      <ResponsiveContainer
+        height={CHART_HEIGHT}
+        initialDimension={initialDimension}
+        minHeight={CHART_HEIGHT}
+        width="100%"
       >
-        <div className="absolute inset-5 grid place-items-center rounded-full bg-white text-center dark:bg-slate-900">
-          <span className="text-2xl font-black">{total}</span>
-        </div>
-      </div>
-      <ul className="space-y-2 text-sm">
-        {items.map((item, index) => (
-          <li
-            className="flex items-center justify-between gap-3"
-            key={item.label}
+        <PieChart
+          accessibilityLayer
+          aria-label={accessibleLabel}
+          margin={{ bottom: 12, left: 8, right: 8, top: 8 }}
+          role="img"
+        >
+          <Pie
+            {...chartTheme.animation}
+            cornerRadius={5}
+            data={data}
+            dataKey="value"
+            innerRadius="56%"
+            nameKey="label"
+            outerRadius="78%"
+            paddingAngle={total === 0 ? 0 : 2}
           >
-            <span className="flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: colors[index % colors.length] }}
+            {data.map((item, index) => (
+              <Cell
+                fill={
+                  item.empty
+                    ? "var(--chart-empty)"
+                    : chartTheme.colors[index % chartTheme.colors.length]
+                }
+                key={item.label}
               />
-              {item.label}
-            </span>
-            <strong>{item.value}</strong>
-          </li>
-        ))}
-      </ul>
-    </div>
+            ))}
+            <Label
+              fill="var(--chart-label)"
+              fontSize={26}
+              fontWeight={800}
+              position="center"
+              value={total}
+            />
+          </Pie>
+          {total > 0 ? <Tooltip {...chartTheme.tooltip} /> : null}
+          {total > 0 ? <Legend {...chartTheme.legend} /> : null}
+        </PieChart>
+      </ResponsiveContainer>
+      <AccessibleDataTable accessibleLabel={accessibleLabel} items={items} />
+    </>
   );
 };
 
 export const HorizontalBarChart = ({ accessibleLabel, items }) => {
-  const maximum = Math.max(1, ...items.map((item) => item.value));
-
   return (
-    <div aria-label={accessibleLabel} className="space-y-3" role="img">
-      {items.map((item, index) => (
-        <div key={item.label}>
-          <div className="mb-1 flex justify-between gap-3 text-sm">
-            <span>{item.label}</span>
-            <strong>{item.value}</strong>
-          </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div
-              className="clinical-chart-bar h-full rounded-full"
-              style={{
-                backgroundColor: colors[index % colors.length],
-                width: `${(item.value / maximum) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
+    <>
+      <ResponsiveContainer
+        height={CHART_HEIGHT}
+        initialDimension={initialDimension}
+        minHeight={CHART_HEIGHT}
+        width="100%"
+      >
+        <BarChart
+          accessibilityLayer
+          aria-label={accessibleLabel}
+          data={items}
+          layout="vertical"
+          margin={{ bottom: 8, left: 4, right: 28, top: 8 }}
+          role="img"
+        >
+          <CartesianGrid {...chartTheme.grid} horizontal={false} vertical />
+          <XAxis {...chartTheme.axis} allowDecimals={false} type="number" />
+          <YAxis
+            {...chartTheme.axis}
+            dataKey="label"
+            type="category"
+            width={118}
+          />
+          <Tooltip {...chartTheme.tooltip} />
+          <Bar
+            {...chartTheme.animation}
+            dataKey="value"
+            name={accessibleLabel}
+            radius={[0, 6, 6, 0]}
+          >
+            {items.map((item, index) => (
+              <Cell
+                fill={chartTheme.colors[index % chartTheme.colors.length]}
+                key={item.label}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+      <AccessibleDataTable accessibleLabel={accessibleLabel} items={items} />
+    </>
   );
 };

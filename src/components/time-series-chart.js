@@ -1,6 +1,16 @@
-const WIDTH = 720;
-const HEIGHT = 260;
-const PADDING = { top: 24, end: 24, bottom: 48, start: 64 };
+"use client";
+
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+import { CHART_HEIGHT, chartTheme } from "@/components/chart-theme";
 
 const formatValue = (value) =>
   new Intl.NumberFormat("en", { maximumFractionDigits: 2 }).format(value);
@@ -12,88 +22,56 @@ export default function TimeSeriesChart({
   unit,
   valueLabel,
 }) {
-  const values = points.map((point) => point.value);
-  const rawMin = Math.min(...values);
-  const rawMax = Math.max(...values);
-  const spread = rawMax - rawMin || Math.max(Math.abs(rawMax) * 0.1, 1);
-  const minimum = rawMin - spread * 0.15;
-  const maximum = rawMax + spread * 0.15;
-  const plotWidth = WIDTH - PADDING.start - PADDING.end;
-  const plotHeight = HEIGHT - PADDING.top - PADDING.bottom;
-  const coordinates = points.map((point, index) => ({
-    ...point,
-    x:
-      PADDING.start +
-      (points.length === 1
-        ? plotWidth / 2
-        : (index / (points.length - 1)) * plotWidth),
-    y:
-      PADDING.top +
-      ((maximum - point.value) / (maximum - minimum)) * plotHeight,
-  }));
-
   return (
-    <div>
-      <svg
-        aria-label={accessibleLabel}
-        className="h-auto w-full overflow-visible"
-        role="img"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+    <>
+      <ResponsiveContainer
+        height={CHART_HEIGHT}
+        initialDimension={{ height: CHART_HEIGHT, width: 720 }}
+        minHeight={CHART_HEIGHT}
+        width="100%"
       >
-        {[0, 0.5, 1].map((ratio) => {
-          const y = PADDING.top + ratio * plotHeight;
-          const value = maximum - ratio * (maximum - minimum);
-          return (
-            <g key={ratio}>
-              <line
-                className="stroke-slate-200 dark:stroke-slate-700"
-                x1={PADDING.start}
-                x2={WIDTH - PADDING.end}
-                y1={y}
-                y2={y}
-              />
-              <text
-                className="fill-slate-500 text-[11px] dark:fill-slate-400"
-                textAnchor="end"
-                x={PADDING.start - 10}
-                y={y + 4}
-              >
-                {formatValue(value)}
-              </text>
-            </g>
-          );
-        })}
-        {coordinates.length > 1 && (
-          <polyline
-            className="fill-none stroke-teal-600 dark:stroke-teal-400"
-            points={coordinates.map(({ x, y }) => `${x},${y}`).join(" ")}
+        <LineChart
+          accessibilityLayer
+          aria-label={accessibleLabel}
+          data={points}
+          margin={{ bottom: 8, left: 0, right: 16, top: 12 }}
+          role="img"
+        >
+          <CartesianGrid {...chartTheme.grid} vertical={false} />
+          <XAxis
+            {...chartTheme.axis}
+            dataKey="date"
+            minTickGap={32}
+            tickFormatter={(value) => value.slice(0, 10)}
+          />
+          <YAxis
+            {...chartTheme.axis}
+            domain={["auto", "auto"]}
+            tickFormatter={formatValue}
+            width={54}
+          />
+          <Tooltip
+            {...chartTheme.tooltip}
+            formatter={(value) => [
+              `${formatValue(value)} ${unit}`.trim(),
+              valueLabel,
+            ]}
+            labelFormatter={(value) => value.slice(0, 10)}
+          />
+          <Line
+            {...chartTheme.animation}
+            activeDot={{ r: 5, strokeWidth: 2 }}
+            dataKey="value"
+            dot={{ fill: "var(--chart-surface)", r: 4, strokeWidth: 2 }}
+            name={valueLabel}
+            stroke={chartTheme.colors[0]}
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth="3"
+            strokeWidth={chartTheme.seriesStrokeWidth}
+            type="monotone"
           />
-        )}
-        {coordinates.map(({ date, value, x, y }, index) => (
-          <g key={`${date}-${index}`}>
-            <circle
-              className="fill-white stroke-teal-700 dark:fill-slate-900 dark:stroke-teal-300"
-              cx={x}
-              cy={y}
-              r="5"
-              strokeWidth="3"
-            />
-            {(index === 0 || index === coordinates.length - 1) && (
-              <text
-                className="fill-slate-600 text-[11px] dark:fill-slate-300"
-                textAnchor={index === 0 ? "start" : "end"}
-                x={x}
-                y={HEIGHT - 18}
-              >
-                {date.slice(0, 10)}
-              </text>
-            )}
-          </g>
-        ))}
-      </svg>
+        </LineChart>
+      </ResponsiveContainer>
       <table className="sr-only">
         <caption>{accessibleLabel}</caption>
         <thead>
@@ -113,6 +91,6 @@ export default function TimeSeriesChart({
           ))}
         </tbody>
       </table>
-    </div>
+    </>
   );
 }
