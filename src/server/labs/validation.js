@@ -52,7 +52,10 @@ export const validateLabCsvFile = async (file, maximumBytes) => {
   const firstLineEnd = bytes.indexOf(0x0a);
   const headerBytes =
     firstLineEnd === -1 ? bytes : bytes.subarray(0, firstLineEnd);
-  const header = headerBytes.toString("utf8").replace(/\r$/, "");
+  const header = headerBytes
+    .toString("utf8")
+    .replace(/^\uFEFF/, "")
+    .replace(/\r$/, "");
   if (header !== LAB_CSV_REQUIRED_HEADERS.join(",")) {
     throw new LabUploadValidationError("INVALID_HEADERS");
   }

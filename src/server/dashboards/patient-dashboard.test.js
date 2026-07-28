@@ -389,6 +389,9 @@ test("patient selector searches from its main field without a second menu input"
   );
   assert.match(filter, /value === "all"[\s\S]*?"\/dashboard\/patient"/);
   assert.match(filter, /searchable/);
+  assert.match(dropdown, /handleValueChange/);
+  assert.match(dropdown, /handleOpenChange\(false\)/);
+  assert.match(dropdown, /onCloseAutoFocus/);
 });
 
 test("dashboard charts share responsive motion, stable skeletons, and deferred loading", async () => {

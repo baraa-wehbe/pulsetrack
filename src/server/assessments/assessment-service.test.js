@@ -5,6 +5,9 @@ import test from "node:test";
 import { sendAssessmentEmail } from "@/server/assessments/email";
 import {
   ASSESSMENT_EXPIRY_MS,
+  ASSESSMENT_MAX_SEND_ATTEMPTS,
+  ASSESSMENT_RETRY_DELAY_MS,
+  ASSESSMENT_RETRY_WINDOW_MS,
   expireSentAssessments,
   processDueAssessments,
 } from "@/server/assessments/service";
@@ -55,10 +58,25 @@ test("SendGrid adapter uses server-only credentials and the v3 mail shape", asyn
       name: "PulseTrack",
     });
     assert.deepEqual(body.personalizations, [
-      { to: [{ email: "patient@example.test" }] },
+      {
+        to: [
+          {
+            email: "patient@example.test",
+            name: "Maya Haddad",
+          },
+        ],
+      },
     ]);
     assert.equal(body.content[0].type, "text/plain");
-    assert.match(body.content[0].value, /https:\/\/app\.example\.test/);
+    assert.match(body.content[0].value, /^Hello Maya,/);
+    assert.match(body.content[0].value, /Name: Maya Haddad/);
+    assert.match(body.content[0].value, /MRN: MRN-TEST-001/);
+    assert.match(body.content[0].value, /Assessment: DSMA-8/);
+    assert.match(
+      body.content[0].value,
+      /https:\/\/app\.example\.test\/assessment\/token/,
+    );
+    assert.match(body.content[0].value, /do not forward this email/);
     return new Response(null, {
       status: 202,
       headers: { "x-message-id": "sendgrid-message-id" },
@@ -68,7 +86,9 @@ test("SendGrid adapter uses server-only credentials and the v3 mail shape", asyn
   const result = await sendAssessmentEmail({
     assessmentUrl: "https://app.example.test/assessment/token",
     idempotencyKey: "delivery-key",
-    patientName: "Test Patient",
+    patientFirstName: "Maya",
+    patientMrn: "MRN-TEST-001",
+    patientName: "Maya Haddad",
     questionnaireTitle: "DSMA-8",
     recipientEmail: "patient@example.test",
   });
@@ -86,8 +106,20 @@ test("due scheduler invokes the shared delivery function for each due assessment
     assessment: {
       findMany: async (query) => {
         assert.deepEqual(query.where, {
-          status: "SCHEDULED",
           scheduledFor: { lte: now },
+          OR: [
+            { status: "SCHEDULED" },
+            {
+              status: "FAILED",
+              sendAttempts: { lt: ASSESSMENT_MAX_SEND_ATTEMPTS },
+              scheduledFor: {
+                gte: new Date(now.getTime() - ASSESSMENT_RETRY_WINDOW_MS),
+              },
+              updatedAt: {
+                lte: new Date(now.getTime() - ASSESSMENT_RETRY_DELAY_MS),
+              },
+            },
+          ],
         });
         return [{ id: "assessment-1" }, { id: "assessment-2" }];
       },

@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import AssessmentBadge from "@/components/assessment-badge";
 import NewPatientModal from "@/components/new-patient-modal";
 import PageHeader from "@/components/page-header";
-import PatientAssessmentModal from "@/components/patient-assessment-modal";
+import {
+  PatientAssessmentActions,
+  PatientAssessmentProvider,
+} from "@/components/patient-assessment-actions";
 import PatientBadge from "@/components/patient-badge";
 import { CONTROL_RADIUS_CLASS } from "@/components/control-styles";
 import PatientFilters from "@/components/patient-filters";
@@ -36,30 +39,33 @@ const sexLabel = (messages, sex) =>
 
 const newPatientButtonClass = `${CONTROL_RADIUS_CLASS} bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-700 dark:hover:bg-teal-600`;
 
-const PatientActions = ({ messages, patient }) => (
-  <div className="flex flex-wrap justify-end gap-2">
-    <PatientAssessmentModal
-      messages={messages}
-      mode="IMMEDIATE"
-      patient={patient}
-      triggerClassName={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:bg-teal-50 hover:text-teal-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:border-teal-500 dark:hover:bg-teal-950 dark:hover:text-teal-100`}
-    />
-    <PatientAssessmentModal
-      messages={messages}
-      mode="SCHEDULED"
-      patient={patient}
-      triggerClassName={`${CONTROL_RADIUS_CLASS} border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800`}
-    />
-  </div>
-);
-
 const MrnLink = ({ listQuery, messages, patient }) => (
   <Link
     aria-label={`${messages.viewPatientMrn} ${patient.mrn}`}
-    className="font-semibold text-teal-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
+    className="group relative inline-flex items-center gap-1.5 rounded-md bg-teal-50 px-2 py-1 font-bold text-teal-800 underline decoration-teal-400 decoration-dotted underline-offset-4 transition hover:bg-teal-100 hover:text-teal-950 hover:decoration-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-950/70 dark:text-teal-200 dark:hover:bg-teal-900"
     href={buildPatientDetailHref(patient.id, listQuery)}
   >
     <bdi dir="ltr">{patient.mrn}</bdi>
+    <svg
+      aria-hidden="true"
+      className="size-3.5 transition-transform group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
+      fill="none"
+      viewBox="0 0 16 16"
+    >
+      <path
+        d="M5 3h8v8M13 3 3 13"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.75"
+      />
+    </svg>
+    <span
+      className="pointer-events-none absolute start-1/2 top-full z-20 mt-2 w-max max-w-48 -translate-x-1/2 rounded-lg bg-slate-950 px-2.5 py-1.5 text-center text-xs font-semibold text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 dark:bg-white dark:text-slate-950"
+      role="tooltip"
+    >
+      {messages.viewPatientDetailsTooltip}
+    </span>
   </Link>
 );
 
@@ -188,7 +194,7 @@ export default async function PatientsPage({ searchParams }) {
           </div>
         </div>
       ) : (
-        <>
+        <PatientAssessmentProvider messages={messages}>
           <div className="mt-8 space-y-4 xl:hidden">
             {result.patients.map((patient) => (
               <article
@@ -206,7 +212,7 @@ export default async function PatientsPage({ searchParams }) {
                       {patient.firstName} {patient.lastName}
                     </h2>
                   </div>
-                  <PatientActions messages={messages} patient={patient} />
+                  <PatientAssessmentActions patient={patient} />
                 </div>
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                   <div>
@@ -258,8 +264,13 @@ export default async function PatientsPage({ searchParams }) {
               </caption>
               <thead className="bg-slate-50 text-slate-600 dark:bg-slate-800/70 dark:text-slate-300">
                 <tr>
+                  <th
+                    className="bg-teal-100/80 px-3 py-3 text-center font-bold text-teal-900 dark:bg-teal-950/70 dark:text-teal-200"
+                    scope="col"
+                  >
+                    {messages.mrn}
+                  </th>
                   {[
-                    messages.mrn,
                     messages.name,
                     messages.patientDetails,
                     messages.origin,
@@ -267,14 +278,17 @@ export default async function PatientsPage({ searchParams }) {
                     messages.assessmentStatus,
                   ].map((heading) => (
                     <th
-                      className="px-3 py-3 text-start font-semibold"
+                      className="px-3 py-3 text-center font-semibold"
                       key={heading}
                       scope="col"
                     >
                       {heading}
                     </th>
                   ))}
-                  <th className="px-3 py-3 text-end font-semibold" scope="col">
+                  <th
+                    className="px-3 py-3 text-center font-semibold"
+                    scope="col"
+                  >
                     {messages.actions}
                   </th>
                 </tr>
@@ -282,7 +296,7 @@ export default async function PatientsPage({ searchParams }) {
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {result.patients.map((patient) => (
                   <tr key={patient.id}>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-center">
                       <MrnLink
                         listQuery={result.query}
                         messages={messages}
@@ -290,12 +304,12 @@ export default async function PatientsPage({ searchParams }) {
                       />
                     </td>
                     <th
-                      className="break-words px-3 py-4 text-start font-semibold text-slate-950 dark:text-white"
+                      className="break-words px-3 py-4 text-center font-semibold text-slate-950 dark:text-white"
                       scope="row"
                     >
                       {patient.firstName} {patient.lastName}
                     </th>
-                    <td className="px-3 py-4 text-slate-600 dark:text-slate-300">
+                    <td className="px-3 py-4 text-center text-slate-600 dark:text-slate-300">
                       <bdi dir="ltr">{patient.dateOfBirth}</bdi>
                       <span className="block">
                         {sexLabel(messages, patient.sex)}
@@ -304,29 +318,32 @@ export default async function PatientsPage({ searchParams }) {
                         {patient.email ?? patient.phone ?? messages.notProvided}
                       </bdi>
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-center">
                       <PatientBadge
                         kind="origin"
                         messages={messages}
                         value={patient.origin}
                       />
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-center">
                       <PatientBadge
                         kind="ownership"
                         messages={messages}
                         value={patient.fhirOwnership}
                       />
                     </td>
-                    <td className="px-3 py-4">
+                    <td className="px-3 py-4 text-center">
                       <AssessmentBadge
                         kind="status"
                         messages={messages}
                         value={patient.assessmentStatus}
                       />
                     </td>
-                    <td className="px-3 py-4">
-                      <PatientActions messages={messages} patient={patient} />
+                    <td className="px-3 py-4 text-center">
+                      <PatientAssessmentActions
+                        align="center"
+                        patient={patient}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -339,7 +356,7 @@ export default async function PatientsPage({ searchParams }) {
             pagination={result.pagination}
             query={result.query}
           />
-        </>
+        </PatientAssessmentProvider>
       )}
     </section>
   );

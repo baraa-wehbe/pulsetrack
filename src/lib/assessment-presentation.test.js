@@ -21,6 +21,7 @@ test("every stored assessment status has a textual presentation", () => {
     "COMPLETED",
     "EXPIRED",
     "FAILED",
+    "NOT_SENT",
     "SCHEDULED",
     "SENT",
   ]);

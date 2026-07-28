@@ -1,18 +1,26 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 
-import { prisma } from "@/lib/prisma";
-import { runAssessmentJob } from "@/server/assessments/service";
+dotenv.config({ path: [".env.local", ".env"], quiet: true });
 
-try {
-  const result = await runAssessmentJob(prisma);
-  console.log(
-    `Assessment delivery complete: ${result.processed} processed, ${result.delivered} delivered, ${result.failed} failed, ${result.skipped} skipped, ${result.cancelled} cancelled, ${result.expired} expired.`,
-  );
-} catch (error) {
+const main = async () => {
+  const [{ prisma }, { runAssessmentJob }] = await Promise.all([
+    import("@/lib/prisma-client"),
+    import("@/server/assessments/service"),
+  ]);
+
+  try {
+    const result = await runAssessmentJob(prisma);
+    console.log(
+      `Assessment delivery complete: ${result.processed} processed, ${result.delivered} delivered, ${result.failed} failed, ${result.skipped} skipped, ${result.cancelled} cancelled, ${result.expired} expired.`,
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+};
+
+main().catch((error) => {
   console.error("Scheduled assessment delivery failed.", {
     name: error instanceof Error ? error.name : "UnknownError",
   });
   process.exitCode = 1;
-} finally {
-  await prisma.$disconnect();
-}
+});

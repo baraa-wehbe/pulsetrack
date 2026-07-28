@@ -11,6 +11,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import {
   AssessmentServiceError,
   ASSESSMENT_EXPIRY_MS,
+  ASSESSMENT_RETRY_DELAY_MS,
   createAssessment,
   processDueAssessments,
   runAssessmentJob,
@@ -89,6 +90,13 @@ test("immediate success emails the raw token but persists and returns only its h
   assert.equal(result.delivered, true);
   assert.equal(result.assessment.status, "SENT");
   assert.match(providerPayload.idempotencyKey, /^[a-f0-9]{64}$/);
+  assert.equal(providerPayload.patientFirstName, patient.firstName);
+  assert.equal(
+    providerPayload.patientName,
+    `${patient.firstName} ${patient.lastName}`,
+  );
+  assert.equal(providerPayload.patientMrn, patient.mrn);
+  assert.equal(providerPayload.recipientEmail, patient.email);
   assert.equal(result.assessment.sentAt, baseTime.toISOString());
   assert.equal(
     result.assessment.expiresAt,
@@ -192,8 +200,14 @@ test("scheduled assessments remain queued and later use the shared delivery path
   assert.equal(created.scheduled, true);
   assert.equal(created.assessment.status, "SCHEDULED");
   assert.equal(created.assessment.sentAt, null);
+  const scheduledAssessment = await prisma.assessment.findFirstOrThrow({
+    where: { patientId: patient.id, scheduledFor },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
 
   const beforeDue = await processDueAssessments(prisma, {
+    assessmentIds: [scheduledAssessment.id],
     now: new Date(baseTime.getTime() + 30 * 60 * 1000),
     emailSender: async () => {
       sendCount += 1;
@@ -205,6 +219,7 @@ test("scheduled assessments remain queued and later use the shared delivery path
   assert.equal(sendCount, 0);
 
   const afterDue = await processDueAssessments(prisma, {
+    assessmentIds: [scheduledAssessment.id],
     now: scheduledFor,
     emailSender: async () => {
       sendCount += 1;
@@ -214,6 +229,62 @@ test("scheduled assessments remain queued and later use the shared delivery path
   });
   assert.equal(afterDue.delivered, 1);
   assert.equal(sendCount, 1);
+});
+
+test("failed scheduled delivery is retried through the same email path", async () => {
+  const scheduledFor = new Date(baseTime.getTime() + 2 * 60 * 60 * 1000);
+  await createAssessment(
+    prisma,
+    clinician.id,
+    patient.mrn,
+    { deliveryMode: "SCHEDULED", scheduledFor },
+    { now: baseTime },
+  );
+  const scheduledAssessment = await prisma.assessment.findFirstOrThrow({
+    where: { patientId: patient.id, scheduledFor },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  let sendCount = 0;
+  const emailSender = async () => {
+    sendCount += 1;
+    if (sendCount === 1) throw new Error("temporary provider outage");
+    return { provider: "mock", messageId: "retry-succeeded" };
+  };
+
+  const firstAttempt = await processDueAssessments(prisma, {
+    assessmentIds: [scheduledAssessment.id],
+    now: scheduledFor,
+    appUrl: "https://app.example.test",
+    emailSender,
+  });
+  assert.equal(firstAttempt.failed, 1);
+  assert.equal(sendCount, 1);
+
+  const tooSoon = await processDueAssessments(prisma, {
+    assessmentIds: [scheduledAssessment.id],
+    now: new Date(scheduledFor.getTime() + ASSESSMENT_RETRY_DELAY_MS - 1),
+    appUrl: "https://app.example.test",
+    emailSender,
+  });
+  assert.equal(tooSoon.processed, 0);
+  assert.equal(sendCount, 1);
+
+  const retry = await processDueAssessments(prisma, {
+    assessmentIds: [scheduledAssessment.id],
+    now: new Date(scheduledFor.getTime() + ASSESSMENT_RETRY_DELAY_MS),
+    appUrl: "https://app.example.test",
+    emailSender,
+  });
+  assert.equal(retry.delivered, 1);
+  assert.equal(sendCount, 2);
+  assert.deepEqual(
+    await prisma.assessment.findUniqueOrThrow({
+      where: { id: scheduledAssessment.id },
+      select: { status: true, sendAttempts: true },
+    }),
+    { status: "SENT", sendAttempts: 2 },
+  );
 });
 
 test("concurrent and repeated jobs deliver a due assessment at most once and expire sent records", async () => {
@@ -259,6 +330,7 @@ test("concurrent and repeated jobs deliver a due assessment at most once and exp
     return { provider: "mock", messageId: `concurrent-${suffix}` };
   };
   const options = {
+    assessmentIds: [dueAssessment.id],
     now: scheduledFor,
     clock: () => scheduledFor,
     appUrl: "https://app.example.test",
@@ -320,12 +392,18 @@ test("archived and unknown patients cannot receive assessments", async () => {
     { deliveryMode: "SCHEDULED", scheduledFor },
     { now: baseTime },
   );
+  const archivedAssessment = await prisma.assessment.findFirstOrThrow({
+    where: { patientId: patient.id, scheduledFor },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
   await prisma.patient.update({
     where: { id: patient.id },
     data: { archivedAt: new Date() },
   });
   let sendCount = 0;
   const processing = await processDueAssessments(prisma, {
+    assessmentIds: [archivedAssessment.id],
     now: scheduledFor,
     appUrl: "https://app.example.test",
     emailSender: async () => {

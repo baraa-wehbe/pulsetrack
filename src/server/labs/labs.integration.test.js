@@ -83,8 +83,8 @@ test("mixed rows partially import with stable errors, counters, and authoritativ
   const mrn = patient.mrn.toLowerCase();
   const csv = [
     "mrn,collected_date,test_code,test_name,value,unit,ref_low,ref_high",
-    ` ${mrn} ,2026-01-02, hba1c ,Untrusted name,6.4,bad,bad,bad`,
-    `${mrn},2026-01-02,HBA1C,Duplicate,9.9,bad,bad,bad`,
+    ` ${mrn} ,1/2/2026, hba1c ,Untrusted name,6.4,bad,bad,bad`,
+    `${mrn},01/02/2026,HBA1C,Duplicate,9.9,bad,bad,bad`,
     "UNKNOWN,2026-01-03,HBA1C,Unknown patient,6.2,%,4,5.6",
     `${mrn},2026-01-03,UNKNOWN,Unknown test,10,x,0,1`,
     `${mrn},2026-02-30,GLU-F,Invalid date,100,mg/dL,70,99`,

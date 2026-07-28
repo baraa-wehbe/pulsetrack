@@ -46,6 +46,8 @@ const safeProviderMessageId = (value) =>
 export const sendAssessmentEmail = async ({
   assessmentUrl,
   idempotencyKey,
+  patientFirstName,
+  patientMrn,
   patientName,
   questionnaireTitle,
   recipientEmail,
@@ -63,19 +65,29 @@ export const sendAssessmentEmail = async ({
         "Idempotency-Key": idempotencyKey,
       },
       body: JSON.stringify({
-        personalizations: [{ to: [{ email: recipientEmail }] }],
+        personalizations: [
+          { to: [{ email: recipientEmail, name: patientName }] },
+        ],
         from,
         subject: `PulseTrack: ${questionnaireTitle}`,
         content: [
           {
             type: "text/plain",
             value: [
-              `Hello ${patientName},`,
+              `Hello ${patientFirstName},`,
               "",
-              "Your clinician has invited you to complete a PulseTrack assessment.",
-              `Open the secure assessment link: ${assessmentUrl}`,
+              "A secure PulseTrack assessment is ready for you.",
+              "",
+              "Patient details",
+              `Name: ${patientName}`,
+              `MRN: ${patientMrn}`,
+              `Assessment: ${questionnaireTitle}`,
+              "",
+              `Complete your assessment using this secure link: ${assessmentUrl}`,
               "",
               "This link expires seven days after delivery.",
+              "For your privacy, do not forward this email or share the link.",
+              "If the patient details above do not match you, do not open the link and contact your care team.",
             ].join("\n"),
           },
         ],

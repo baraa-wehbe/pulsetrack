@@ -70,6 +70,14 @@ export default function CustomDropdown({
     if (!nextOpen) setSearch("");
   };
 
+  const handleValueChange = (nextValue) => {
+    if (searchableFormControl) {
+      searchRef.current?.blur();
+      handleOpenChange(false);
+    }
+    onValueChange?.(nextValue);
+  };
+
   const focusFirstOption = () => {
     contentRef.current
       ?.querySelector('[role="menuitemradio"]:not([data-disabled])')
@@ -160,6 +168,11 @@ export default function CustomDropdown({
               searchRef.current?.focus();
             }
           }}
+          onCloseAutoFocus={(event) => {
+            if (searchableFormControl) {
+              event.preventDefault();
+            }
+          }}
         >
           {navigation ? (
             visibleItems.map((item) => (
@@ -175,7 +188,7 @@ export default function CustomDropdown({
             ))
           ) : (
             <DropdownMenu.RadioGroup
-              onValueChange={onValueChange}
+              onValueChange={handleValueChange}
               value={String(value)}
             >
               {visibleItems.map((item) => {

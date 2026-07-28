@@ -42,6 +42,11 @@ Open `http://localhost:3000` and sign in with the local clinician you created.
 Use a unique development password and do not commit it. On macOS or Linux,
 replace `Copy-Item .env.example .env` with `cp .env.example .env`.
 
+`npm run dev` starts both Next.js and the local scheduled-assessment worker.
+The worker loads `.env.local` before `.env`, runs one check immediately, then
+checks for due assessments once per minute. It uses the same idempotent
+delivery service and email configuration as the protected HTTP job.
+
 The example environment is immediately usable with the Compose database. Before
 using email delivery or any non-local deployment, replace `AUTH_SECRET`,
 `SCHEDULER_SECRET`, `SENDGRID_API_KEY`, and `ASSESSMENT_EMAIL_FROM`. Only
@@ -60,7 +65,8 @@ appropriate:
 - `DATABASE_URL` must be the managed database connection string. Prefer the
   provider's pooled runtime URL when one is available.
 - Generate unique values of at least 32 characters for `AUTH_SECRET` and
-  `SCHEDULER_SECRET`.
+  `SCHEDULER_SECRET`. Also set `CRON_SECRET` for Vercel cron invocations; it may
+  use the same value as `SCHEDULER_SECRET`.
 - Set `NEXT_PUBLIC_APP_URL` to the deployed HTTPS origin.
 - Add SendGrid and FHIR variables only when those integrations are enabled.
 
@@ -249,14 +255,21 @@ Configure the server-only `SENDGRID_API_KEY` and `ASSESSMENT_EMAIL_FROM`
 variables documented in `.env.example`. Production schedulers may call
 `POST /api/scheduled/assessments` with `Authorization: Bearer <scheduler-secret>`;
 configure the server-only `SCHEDULER_SECRET` with at least 32 random characters.
+The repository also includes a five-minute GitHub Actions cron. Configure
+repository secrets named `PULSETRACK_APP_URL` and `SCHEDULER_SECRET` to enable
+it. A daily Vercel Hobby-compatible safety run is registered in `vercel.json`;
+Vercel calls the `GET` handler using its `CRON_SECRET` bearer header.
 The endpoint and CLI invoke the same delivery-and-expiry job. PostgreSQL
 transaction-scoped advisory locks serialize each assessment delivery, and a
-stable provider idempotency key protects interrupted retries. Each delivery uses a cryptographically
-random token and stores only its SHA-256 hash. The raw token exists only in the
-patient link passed to the email provider; it is never returned by the API or
-written to logs or audit metadata. Confirmed sends set `sent_at` and an expiry
-exactly seven days later. Every success or failure creates a delivery-attempt
-row containing only controlled provider metadata and sanitized errors.
+stable provider idempotency key protects interrupted retries. Temporary
+delivery failures are retried after five minutes, at most three times, and only
+within 24 hours of the requested schedule so stale patient messages are not
+sent unexpectedly. Each delivery uses a cryptographically random token and
+stores only its SHA-256 hash. The raw token exists only in the patient link
+passed to the email provider; it is never returned by the API or written to
+logs or audit metadata. Confirmed sends set `sent_at` and an expiry exactly
+seven days later. Every success or failure creates a delivery-attempt row
+containing only controlled provider metadata and sanitized errors.
 
 Automated assessment tests always inject a mocked email sender and never contact
 SendGrid:
@@ -290,6 +303,12 @@ re-uploads. Raw CSV files are not retained; only safe filename metadata, a
 SHA-256 digest, normalized row results, and stable validation codes are stored.
 Accepted results enqueue idempotent FHIR Observation synchronization when the
 optional server-only FHIR configuration is available.
+
+Collection dates accept canonical `YYYY-MM-DD`, year-first `YYYY/M/D`, and
+month-first spreadsheet forms such as `M/D/YYYY` or `M-D-YYYY`. All accepted
+forms are validated as real, non-future calendar dates and normalized to
+`YYYY-MM-DD` before duplicate checks and storage. Lab-result inserts, validation
+rows, and FHIR queue entries are batched to keep larger uploads responsive.
 
 Each upload-history filename links to the clinician-scoped validation detail at
 `/lab-uploads/[importId]`. The detail page presents every stored source row in
@@ -349,7 +368,9 @@ npm run assessments:deliver-due
 
 External schedulers can call `POST /api/scheduled/assessments` with
 `Authorization: Bearer <SCHEDULER_SECRET>`. Never place the scheduler secret in
-a URL, browser script, or committed file.
+a URL, browser script, or committed file. Local `npm run dev` starts a
+once-per-minute cron worker automatically. In production, configure the GitHub
+repository secrets described above and set `CRON_SECRET` in Vercel.
 
 ## Commands
 
@@ -366,6 +387,7 @@ npm run db:status    # Show database container status
 npm run db:down      # Stop local PostgreSQL
 npm run clinician:create -- --email <email> --password "<password>" --name "<name>"
 npm run assessments:deliver-due # Deliver scheduled assessments that are due
+npm run benchmark:routes # Benchmark authenticated routes against a running server
 npm test             # Run the unit test suite
 npm run test:auth    # Run clinician authentication unit tests
 npm run test:shell   # Run shell, navigation, language, RTL, and theme tests

@@ -119,6 +119,7 @@ const translations = {
     sendQuestionnaireTo: "Send questionnaire to MRN",
     scheduleQuestionnaireFor: "Schedule questionnaire for MRN",
     viewPatientMrn: "View patient MRN",
+    viewPatientDetailsTooltip: "Open patient details",
     originLocal: "Local",
     originLocalDescription: "The patient record originated in PulseTrack.",
     originFhir: "FHIR",
@@ -314,11 +315,15 @@ const translations = {
     labUploadsDescription:
       "Download the required template, upload a CSV, and review processing history.",
     downloadLabTemplate: "Download CSV template",
+    labTemplateHeading: "Start with the required template",
+    labTemplateDescription:
+      "Download the exact CSV structure, keep its headers unchanged, and use MRNs that already belong to active patients in PulseTrack.",
     uploadLabCsv: "Upload lab CSV",
     uploadLabCsvDescription:
       "Rows are validated against active patients and the supported lab catalog. Valid results are imported even when other rows fail.",
     labCsvFile: "CSV file",
-    labCsvHelp: "Choose a non-empty CSV that uses the exact template headers.",
+    labCsvHelp:
+      "Keep the template headers unchanged. Dates may use YYYY-MM-DD, YYYY/M/D, or month-first M/D/YYYY (for example 2026-07-02 or 7/2/2026).",
     labUploadButton: "Upload CSV",
     labUploading: "Uploading…",
     labUploadFileRequired: "Choose a CSV file.",
@@ -329,6 +334,12 @@ const translations = {
       "The CSV headers do not exactly match the required template.",
     labUploadInvalid: "The upload form is invalid.",
     labUploadError: "The CSV could not be uploaded safely.",
+    labUploadSuccessTitle: "CSV processed",
+    labUploadSuccessDescription:
+      "{file} was processed: {accepted} accepted, {rejected} rejected, and {duplicates} duplicates.",
+    labUploadReportHint:
+      "To review every row and rejection reason, select “View validation report” below or choose the filename in Upload history.",
+    viewImportReportTooltip: "Open this upload's validation report",
     labImportHistory: "Upload history",
     noLabImports: "No uploads yet",
     noLabImportsDescription:
@@ -373,12 +384,15 @@ const translations = {
     labRowErrorUnknownMrn: "The MRN does not identify an active patient.",
     labRowErrorUnknownTestCode:
       "The test code is not in the active supported catalog.",
-    labRowErrorInvalidCollectedDate: "The collected date is invalid.",
+    labRowErrorInvalidCollectedDate:
+      "The collected date is invalid. Use YYYY-MM-DD or month-first M/D/YYYY, such as 2026-07-02 or 7/2/2026.",
     labRowErrorFutureCollectedDate:
       "The collected date cannot be in the future.",
     labRowErrorInvalidNumericValue: "The result value is not a valid number.",
     labRowErrorDuplicate: "This patient, date, and test result already exists.",
     labRowErrorUnknown: "An unknown validation error was recorded.",
+    labRejectedReasonNotice:
+      "{count} row(s) were rejected. The exact reason and affected field are listed below.",
     labImportNotFoundTitle: "Lab import not found",
     labImportNotFoundDescription:
       "This lab import is unavailable or does not exist.",
@@ -612,6 +626,7 @@ const translations = {
     sendQuestionnaireTo: "إرسال استبيان إلى رقم السجل الطبي",
     scheduleQuestionnaireFor: "جدولة استبيان لرقم السجل الطبي",
     viewPatientMrn: "عرض المريض ذي رقم السجل الطبي",
+    viewPatientDetailsTooltip: "فتح تفاصيل المريض",
     originLocal: "محلي",
     originLocalDescription: "تم إنشاء سجل المريض في PulseTrack.",
     originFhir: "FHIR",
@@ -796,11 +811,15 @@ const translations = {
     labUploadsDescription:
       "نزّل القالب المطلوب، وارفع ملف CSV، وراجع سجل المعالجة.",
     downloadLabTemplate: "تنزيل قالب CSV",
+    labTemplateHeading: "ابدأ بالقالب المطلوب",
+    labTemplateDescription:
+      "نزّل بنية CSV الدقيقة، واحتفظ برؤوسها كما هي، واستخدم أرقام سجلات لمرضى نشطين موجودين في PulseTrack.",
     uploadLabCsv: "رفع ملف تحاليل CSV",
     uploadLabCsvDescription:
       "يتم التحقق من الصفوف مقابل المرضى النشطين ودليل التحاليل المدعوم. تُستورد النتائج الصالحة حتى عند فشل صفوف أخرى.",
     labCsvFile: "ملف CSV",
-    labCsvHelp: "اختر ملف CSV غير فارغ يستخدم رؤوس القالب نفسها تمامًا.",
+    labCsvHelp:
+      "أبقِ رؤوس القالب كما هي. يمكن أن يكون التاريخ YYYY-MM-DD أو YYYY/M/D أو بصيغة الشهر أولاً M/D/YYYY، مثل 2026-07-02 أو 7/2/2026.",
     labUploadButton: "رفع ملف CSV",
     labUploading: "جارٍ الرفع…",
     labUploadFileRequired: "اختر ملف CSV.",
@@ -810,6 +829,12 @@ const translations = {
     labUploadInvalidHeaders: "لا تتطابق رؤوس ملف CSV تمامًا مع القالب المطلوب.",
     labUploadInvalid: "نموذج الرفع غير صالح.",
     labUploadError: "تعذر رفع ملف CSV بأمان.",
+    labUploadSuccessTitle: "تمت معالجة ملف CSV",
+    labUploadSuccessDescription:
+      "تمت معالجة {file}: {accepted} مقبول، و{rejected} مرفوض، و{duplicates} مكرر.",
+    labUploadReportHint:
+      "لمراجعة جميع الصفوف وأسباب الرفض، اختر «عرض التحقق من الاستيراد» أدناه أو اضغط اسم الملف في سجل الرفع.",
+    viewImportReportTooltip: "فتح تقرير التحقق لهذا الملف",
     labImportHistory: "سجل الرفع",
     noLabImports: "لا توجد ملفات مرفوعة بعد",
     noLabImportsDescription: "ستظهر ملفات CSV المقبولة هنا مع حالة معالجتها.",
@@ -853,12 +878,15 @@ const translations = {
     labRowErrorUnknownMrn: "رقم السجل الطبي لا يحدد مريضًا نشطًا.",
     labRowErrorUnknownTestCode:
       "رمز التحليل غير موجود في الدليل النشط المدعوم.",
-    labRowErrorInvalidCollectedDate: "تاريخ جمع العينة غير صالح.",
+    labRowErrorInvalidCollectedDate:
+      "تاريخ جمع العينة غير صالح. استخدم YYYY-MM-DD أو صيغة الشهر أولاً M/D/YYYY، مثل 2026-07-02 أو 7/2/2026.",
     labRowErrorFutureCollectedDate:
       "لا يمكن أن يكون تاريخ جمع العينة في المستقبل.",
     labRowErrorInvalidNumericValue: "قيمة النتيجة ليست رقمًا صالحًا.",
     labRowErrorDuplicate: "نتيجة هذا المريض والتاريخ والتحليل موجودة مسبقًا.",
     labRowErrorUnknown: "تم تسجيل خطأ تحقق غير معروف.",
+    labRejectedReasonNotice:
+      "تم رفض {count} صف. سبب الرفض الدقيق والحقل المتأثر مذكوران أدناه.",
     labImportNotFoundTitle: "استيراد التحاليل غير موجود",
     labImportNotFoundDescription: "استيراد التحاليل هذا غير متاح أو غير موجود.",
     loadingLabImportDetail: "جارٍ تحميل التحقق من الاستيراد…",

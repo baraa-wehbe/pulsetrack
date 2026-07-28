@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import LabCsvUploadForm from "@/components/lab-csv-upload-form";
+import LabImportReportLink from "@/components/lab-import-report-link";
 import { STATUS_BADGE_RADIUS_CLASS } from "@/components/badge-styles";
 import PageHeader from "@/components/page-header";
 import { env } from "@/config/env.mjs";
@@ -43,39 +42,68 @@ export default async function LabUploadsPage() {
 
   return (
     <section aria-labelledby="lab-uploads-heading">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <PageHeader
-          description={messages.labUploadsDescription}
-          descriptionClassName="max-w-3xl"
-          headingId="lab-uploads-heading"
-          title={messages.labUploadsHeading}
-        />
-        <a
-          className="control-pill rounded-full border border-teal-700 px-4 py-2 font-semibold text-teal-800 hover:bg-teal-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:border-teal-400 dark:text-teal-200 dark:hover:bg-teal-950"
-          download
-          href="/api/private/lab-imports/template"
-        >
-          {messages.downloadLabTemplate}
-        </a>
-      </div>
+      <PageHeader
+        description={messages.labUploadsDescription}
+        descriptionClassName="max-w-3xl"
+        headingId="lab-uploads-heading"
+        title={messages.labUploadsHeading}
+      />
 
       <section
         aria-labelledby="upload-lab-csv-heading"
-        className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        className="mt-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
       >
-        <h2
-          className="text-xl font-bold text-slate-950 dark:text-white"
-          id="upload-lab-csv-heading"
-        >
-          {messages.uploadLabCsv}
-        </h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          {messages.uploadLabCsvDescription}
-        </p>
-        <LabCsvUploadForm
-          maximumBytes={env.LAB_CSV_MAX_BYTES}
-          messages={messages}
-        />
+        <div className="grid lg:grid-cols-2">
+          <div className="p-6 sm:p-8 lg:border-e lg:border-slate-200 dark:lg:border-slate-800">
+            <h2
+              className="text-xl font-bold text-slate-950 dark:text-white"
+              id="upload-lab-csv-heading"
+            >
+              {messages.uploadLabCsv}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              {messages.uploadLabCsvDescription}
+            </p>
+            <div className="mt-6">
+              <LabCsvUploadForm
+                maximumBytes={env.LAB_CSV_MAX_BYTES}
+                messages={messages}
+              />
+            </div>
+          </div>
+
+          <div className="flex min-h-full flex-col justify-between border-t border-slate-200 bg-gradient-to-br from-teal-50 to-cyan-50/40 p-6 sm:p-8 lg:border-t-0 dark:border-slate-800 dark:from-teal-950/50 dark:to-slate-900">
+            <div>
+              <span
+                aria-hidden="true"
+                className="grid size-12 place-items-center rounded-2xl bg-teal-700 text-white shadow-sm dark:bg-teal-600"
+              >
+                <svg className="size-6" fill="none" viewBox="0 0 24 24">
+                  <path
+                    d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                  />
+                </svg>
+              </span>
+              <h2 className="mt-5 text-xl font-bold text-slate-950 dark:text-white">
+                {messages.labTemplateHeading}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {messages.labTemplateDescription}
+              </p>
+            </div>
+            <a
+              className="control-pill mt-8 inline-flex w-fit items-center gap-2 rounded-full bg-teal-700 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-600 dark:hover:bg-teal-500"
+              download
+              href="/api/private/lab-imports/template"
+            >
+              {messages.downloadLabTemplate}
+            </a>
+          </div>
+        </div>
       </section>
 
       <section
@@ -100,32 +128,35 @@ export default async function LabUploadsPage() {
           </div>
         ) : (
           <>
-            <div className="mt-5 hidden overflow-hidden rounded-xl border border-slate-200 md:block dark:border-slate-700">
+            <div className="mt-5 hidden rounded-xl border border-slate-200 md:block dark:border-slate-700">
               <table className="w-full border-collapse text-sm">
                 <caption className="sr-only">
                   {messages.labImportHistory}
                 </caption>
                 <thead className="bg-slate-50 dark:bg-slate-800">
                   <tr>
-                    <th className="px-4 py-3 text-start" scope="col">
+                    <th
+                      className="bg-teal-100/80 px-4 py-3 text-center font-bold text-teal-900 dark:bg-teal-950/70 dark:text-teal-200"
+                      scope="col"
+                    >
                       {messages.fileName}
                     </th>
-                    <th className="px-4 py-3 text-start" scope="col">
+                    <th className="px-4 py-3 text-center" scope="col">
                       {messages.uploadedAt}
                     </th>
-                    <th className="px-4 py-3 text-start" scope="col">
+                    <th className="px-4 py-3 text-center" scope="col">
                       {messages.rowCount}
                     </th>
-                    <th className="px-4 py-3 text-start" scope="col">
+                    <th className="px-4 py-3 text-center" scope="col">
                       {messages.acceptedRows}
                     </th>
-                    <th className="px-4 py-3 text-start" scope="col">
+                    <th className="px-4 py-3 text-center" scope="col">
                       {messages.rejectedRows}
                     </th>
-                    <th className="px-4 py-3 text-start" scope="col">
+                    <th className="px-4 py-3 text-center" scope="col">
                       {messages.duplicateRows}
                     </th>
-                    <th className="px-4 py-3 text-start" scope="col">
+                    <th className="px-4 py-3 text-center" scope="col">
                       {messages.status}
                     </th>
                   </tr>
@@ -136,27 +167,30 @@ export default async function LabUploadsPage() {
                       className="border-t border-slate-200 dark:border-slate-700"
                       key={labImport.id}
                     >
-                      <td className="max-w-xs break-words px-4 py-3 font-semibold">
-                        <Link
-                          aria-label={`${messages.viewImportValidation}: ${labImport.originalFileName}`}
-                          className="text-teal-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
-                          href={`/lab-uploads/${encodeURIComponent(labImport.id)}`}
-                        >
-                          <bdi dir="ltr">{labImport.originalFileName}</bdi>
-                        </Link>
+                      <td className="max-w-xs break-words px-4 py-3 text-center font-semibold">
+                        <LabImportReportLink
+                          labImport={labImport}
+                          messages={messages}
+                        />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-center">
                         {formatTimestamp(labImport.createdAt, language)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-center">
                         {labImport.totalRows > 0
                           ? labImport.totalRows
                           : messages.notAvailable}
                       </td>
-                      <td className="px-4 py-3">{labImport.acceptedRows}</td>
-                      <td className="px-4 py-3">{labImport.rejectedRows}</td>
-                      <td className="px-4 py-3">{labImport.duplicateRows}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 text-center">
+                        {labImport.acceptedRows}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {labImport.rejectedRows}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {labImport.duplicateRows}
+                      </td>
+                      <td className="px-4 py-3 text-center">
                         <StatusBadge
                           messages={messages}
                           status={labImport.status}
@@ -175,13 +209,10 @@ export default async function LabUploadsPage() {
                   key={labImport.id}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <Link
-                      aria-label={`${messages.viewImportValidation}: ${labImport.originalFileName}`}
-                      className="min-w-0 break-words font-semibold text-teal-700 underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:text-teal-300"
-                      href={`/lab-uploads/${encodeURIComponent(labImport.id)}`}
-                    >
-                      <bdi dir="ltr">{labImport.originalFileName}</bdi>
-                    </Link>
+                    <LabImportReportLink
+                      labImport={labImport}
+                      messages={messages}
+                    />
                     <StatusBadge
                       messages={messages}
                       status={labImport.status}

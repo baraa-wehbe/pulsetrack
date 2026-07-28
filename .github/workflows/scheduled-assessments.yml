@@ -1,0 +1,30 @@
+name: Deliver scheduled assessments
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pulsetrack-scheduled-assessments
+  cancel-in-progress: false
+
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Process due assessments
+        env:
+          PULSETRACK_APP_URL: ${{ secrets.PULSETRACK_APP_URL }}
+          SCHEDULER_SECRET: ${{ secrets.SCHEDULER_SECRET }}
+        run: |
+          test -n "$PULSETRACK_APP_URL"
+          test -n "$SCHEDULER_SECRET"
+          curl --fail --show-error --silent \
+            --request POST \
+            --header "Authorization: Bearer $SCHEDULER_SECRET" \
+            "${PULSETRACK_APP_URL%/}/api/scheduled/assessments"

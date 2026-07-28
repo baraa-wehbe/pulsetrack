@@ -13,23 +13,46 @@ const REQUIRED_FIELDS = Object.freeze([
   "test_code",
   "value",
 ]);
-const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE_PATTERN = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/;
+const MONTH_FIRST_DATE_PATTERN = /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/;
 const DECIMAL_PATTERN = /^[+-]?\d{1,8}(?:\.\d{1,4})?$/;
 
 const dateOnlyFromClock = (value) => value.toISOString().slice(0, 10);
 
-const isStrictDateOnly = (value) => {
-  if (!DATE_ONLY_PATTERN.test(value)) {
-    return false;
-  }
+export const normalizeLabCollectedDate = (value) => {
+  const isoMatch = ISO_DATE_PATTERN.exec(value);
+  const monthFirstMatch = MONTH_FIRST_DATE_PATTERN.exec(value);
+  const parts = isoMatch
+    ? {
+        year: Number(isoMatch[1]),
+        month: Number(isoMatch[2]),
+        day: Number(isoMatch[3]),
+      }
+    : monthFirstMatch
+      ? {
+          year: Number(monthFirstMatch[3]),
+          month: Number(monthFirstMatch[1]),
+          day: Number(monthFirstMatch[2]),
+        }
+      : null;
 
-  const [year, month, day] = value.split("-").map(Number);
+  if (!parts) return null;
+
+  const { year, month, day } = parts;
   const date = new Date(Date.UTC(year, month - 1, day));
-  return (
+  if (
     date.getUTCFullYear() === year &&
     date.getUTCMonth() === month - 1 &&
     date.getUTCDate() === day
-  );
+  ) {
+    return [
+      String(year).padStart(4, "0"),
+      String(month).padStart(2, "0"),
+      String(day).padStart(2, "0"),
+    ].join("-");
+  }
+
+  return null;
 };
 
 const isSafeDecimal = (value) =>
@@ -56,7 +79,8 @@ export const parseLabCsvRows = (bytes) =>
 
 export const normalizeLabCsvRow = (fields) => ({
   mrn: normalizePatientMrn(fields.mrn),
-  collectedDate: fields.collected_date,
+  collectedDate:
+    normalizeLabCollectedDate(fields.collected_date) ?? fields.collected_date,
   testCode: fields.test_code.toUpperCase(),
   value: fields.value,
 });
@@ -80,15 +104,15 @@ export const validateNormalizedLabRow = (
     );
   }
 
-  const validDate = isStrictDateOnly(normalized.collectedDate);
-  if (normalized.collectedDate && !validDate) {
+  const normalizedDate = normalizeLabCollectedDate(fields.collected_date);
+  if (normalized.collectedDate && !normalizedDate) {
     errors.push(
       validationError(
         LAB_ROW_ERROR_CODES.INVALID_COLLECTED_DATE,
         "collected_date",
       ),
     );
-  } else if (validDate && normalized.collectedDate > today) {
+  } else if (normalizedDate && normalizedDate > today) {
     errors.push(
       validationError(
         LAB_ROW_ERROR_CODES.FUTURE_COLLECTED_DATE,
@@ -201,9 +225,7 @@ const processLabImportTransaction = async (
       const activeTestsByCode = new Map(tests.map((test) => [test.code, test]));
       const seen = new Set();
       const today = dateOnlyFromClock(now);
-      let acceptedRows = 0;
-      let rejectedRows = 0;
-      let duplicateRows = 0;
+      const processedRows = [];
 
       for (const row of normalizedRows) {
         const { errors, patient, test } = validateNormalizedLabRow(
@@ -221,10 +243,10 @@ const processLabImportTransaction = async (
           refHigh: test?.defaultRefHigh?.toString() ?? null,
         };
         let status = "REJECTED";
-        let labResultId = null;
+        let identity = null;
 
         if (errors.length === 0) {
-          const identity = rowIdentity(
+          identity = rowIdentity(
             patient.id,
             row.normalized.collectedDate,
             test.code,
@@ -234,63 +256,98 @@ const processLabImportTransaction = async (
             status = "DUPLICATE";
           } else {
             seen.add(identity);
-            const inserted = await transaction.$queryRaw`
-              INSERT INTO "lab_results" (
-                "id", "patient_id", "test_code", "collected_date",
-                "value", "unit", "ref_low", "ref_high", "source",
-                "fhir_sync_status", "created_at", "updated_at"
-              )
-              VALUES (
-                gen_random_uuid(),
-                ${patient.id}::uuid,
-                ${test.code},
-                ${row.normalized.collectedDate}::date,
-                ${row.normalized.value}::numeric,
-                ${test.defaultUnit},
-                ${test.defaultRefLow?.toString() ?? null}::numeric,
-                ${test.defaultRefHigh?.toString() ?? null}::numeric,
-                'CSV'::"LabResultSource",
-                'PENDING'::"FhirSyncStatus",
-                ${now},
-                ${now}
-              )
-              ON CONFLICT ("patient_id", "collected_date", "test_code")
-              DO NOTHING
-              RETURNING "id"
-            `;
-            if (inserted.length === 1) {
-              labResultId = inserted[0].id;
-              status = "ACCEPTED";
-            } else {
-              errors.push(validationError(LAB_ROW_ERROR_CODES.DUPLICATE_ROW));
-              status = "DUPLICATE";
-            }
+            status = "CANDIDATE";
           }
         }
 
-        if (status === "ACCEPTED") {
-          acceptedRows += 1;
-        } else if (status === "DUPLICATE") {
-          duplicateRows += 1;
-        } else {
-          rejectedRows += 1;
+        processedRows.push({
+          errors,
+          identity,
+          normalizedData,
+          patient,
+          row,
+          status,
+          test,
+        });
+      }
+
+      const candidates = processedRows.filter(
+        ({ status }) => status === "CANDIDATE",
+      );
+      const insertedResults =
+        candidates.length === 0
+          ? []
+          : await transaction.labResult.createManyAndReturn({
+              data: candidates.map(({ patient, row, test }) => ({
+                patientId: patient.id,
+                testCode: test.code,
+                collectedDate: new Date(
+                  `${row.normalized.collectedDate}T00:00:00.000Z`,
+                ),
+                value: row.normalized.value,
+                unit: test.defaultUnit,
+                refLow: test.defaultRefLow,
+                refHigh: test.defaultRefHigh,
+                source: "CSV",
+                fhirSyncStatus: "PENDING",
+                createdAt: now,
+                updatedAt: now,
+              })),
+              skipDuplicates: true,
+              select: {
+                id: true,
+                patientId: true,
+                testCode: true,
+                collectedDate: true,
+              },
+            });
+      const insertedByIdentity = new Map(
+        insertedResults.map((result) => [
+          rowIdentity(
+            result.patientId,
+            dateOnlyFromClock(result.collectedDate),
+            result.testCode,
+          ),
+          result.id,
+        ]),
+      );
+      let acceptedRows = 0;
+      let rejectedRows = 0;
+      let duplicateRows = 0;
+      const importRows = processedRows.map((processed) => {
+        let { status } = processed;
+        let labResultId = null;
+
+        if (status === "CANDIDATE") {
+          labResultId = insertedByIdentity.get(processed.identity) ?? null;
+          status = labResultId ? "ACCEPTED" : "DUPLICATE";
+          if (!labResultId) {
+            processed.errors.push(
+              validationError(LAB_ROW_ERROR_CODES.DUPLICATE_ROW),
+            );
+          }
         }
 
-        await transaction.labImportRow.create({
-          data: {
-            importId,
-            rowNumber: row.rowNumber,
-            status,
-            // Normalized values and stable validation errors are sufficient for
-            // the validation report. Do not duplicate the uploaded PHI-heavy
-            // source row after processing.
-            rawData: {},
-            normalizedData,
-            validationErrors: errors,
-            labResultId,
-          },
-          select: { id: true },
-        });
+        if (status === "ACCEPTED") acceptedRows += 1;
+        else if (status === "DUPLICATE") duplicateRows += 1;
+        else rejectedRows += 1;
+
+        return {
+          importId,
+          rowNumber: processed.row.rowNumber,
+          status,
+          // Normalized values and stable validation errors are sufficient for
+          // the validation report. Do not duplicate the uploaded PHI-heavy
+          // source row after processing.
+          rawData: {},
+          normalizedData: processed.normalizedData,
+          validationErrors: processed.errors,
+          labResultId,
+        };
+      });
+
+      if (importRows.length > 0) {
+        await transaction.labImportRow.createMany({ data: importRows });
       }
 
       const totalRows = normalizedRows.length;

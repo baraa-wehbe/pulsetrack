@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -19,11 +20,13 @@ export default function LabCsvUploadForm({ maximumBytes, messages }) {
   const [file, setFile] = useState(null);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [success, setSuccess] = useState(null);
 
   const submit = async (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     setError("");
+    setSuccess(null);
 
     if (!file) {
       setError(messages.labUploadFileRequired);
@@ -59,6 +62,20 @@ export default function LabCsvUploadForm({ maximumBytes, messages }) {
 
       form.reset();
       setFile(null);
+      const imported = result.labImport;
+      if (imported?.id) {
+        const filter =
+          imported.rejectedRows > 0
+            ? "rejected"
+            : imported.duplicateRows > 0
+              ? "duplicate"
+              : "all";
+        setSuccess({
+          ...imported,
+          fileName: file.name,
+          reportHref: `/lab-uploads/${encodeURIComponent(imported.id)}?status=${filter}`,
+        });
+      }
       router.refresh();
     } catch {
       setError(messages.labUploadError);
@@ -68,7 +85,7 @@ export default function LabCsvUploadForm({ maximumBytes, messages }) {
   };
 
   return (
-    <form className="mt-6 space-y-4" noValidate onSubmit={submit}>
+    <form className="space-y-4" noValidate onSubmit={submit}>
       <div>
         <label
           className="block text-sm font-semibold text-slate-800 dark:text-slate-100"
@@ -102,6 +119,43 @@ export default function LabCsvUploadForm({ maximumBytes, messages }) {
             {error}
           </p>
         )}
+        {success ? (
+          <div
+            aria-live="polite"
+            className="mt-4 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-950 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-100"
+            role="status"
+          >
+            <p className="font-bold">{messages.labUploadSuccessTitle}</p>
+            <p className="mt-1 leading-6">
+              {messages.labUploadSuccessDescription
+                .replace("{file}", success.fileName)
+                .replace("{accepted}", String(success.acceptedRows))
+                .replace("{rejected}", String(success.rejectedRows))
+                .replace("{duplicates}", String(success.duplicateRows))}
+            </p>
+            <p className="mt-1 leading-6">{messages.labUploadReportHint}</p>
+            <Link
+              className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-teal-700 px-3 py-2 font-bold text-white transition hover:bg-teal-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-600 dark:bg-teal-600 dark:hover:bg-teal-500"
+              href={success.reportHref}
+            >
+              {messages.viewImportValidation}
+              <svg
+                aria-hidden="true"
+                className="size-3.5"
+                fill="none"
+                viewBox="0 0 16 16"
+              >
+                <path
+                  d="M5 3h8v8M13 3 3 13"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="1.75"
+                />
+              </svg>
+            </Link>
+          </div>
+        ) : null}
       </div>
       <button
         aria-busy={pending}

@@ -159,16 +159,26 @@ test("patient list has responsive cards and a semantic table", async () => {
 });
 
 test("only MRN links to details and assessment actions open in-place dialogs", async () => {
-  const source = await readSource("app/(private)/patients/page.js");
+  const [source, assessmentActions] = await Promise.all([
+    readSource("app/(private)/patients/page.js"),
+    readSource("components/patient-assessment-actions.js"),
+  ]);
 
   assert.match(source, /buildPatientDetailHref\(patient\.id, listQuery\)/);
   assert.doesNotMatch(source, /href=\{`\/patients\/\$\{patient\.id\}`\}/);
   assert.match(source, /<MrnLink/);
   assert.doesNotMatch(source, /<h2[^>]*>\s*<Link/);
-  assert.match(source, /<PatientAssessmentModal/);
-  assert.match(source, /mode="IMMEDIATE"/);
-  assert.match(source, /mode="SCHEDULED"/);
+  assert.match(source, /<PatientAssessmentProvider/);
+  assert.match(source, /<PatientAssessmentActions/);
+  assert.match(assessmentActions, /Dialog\.Root/);
+  assert.match(assessmentActions, /openAssessment\(patient, "IMMEDIATE"\)/);
+  assert.match(assessmentActions, /openAssessment\(patient, "SCHEDULED"\)/);
   assert.doesNotMatch(source, /\/send`|\/schedule`/);
+  assert.match(source, /viewPatientDetailsTooltip/);
+  assert.match(source, /role="tooltip"/);
+  assert.match(source, /decoration-dotted/);
+  assert.match(source, /bg-teal-100\/80/);
+  assert.match(source, /text-center font-semibold/);
 });
 
 test("patient list loading, empty, filtered-empty, and error states are intentional", async () => {
@@ -199,7 +209,7 @@ test("patient filters navigate automatically with debounce and stale-request pro
   assert.match(pageSource, /key=\{buildPatientListHref\(query\)\}/);
   assert.match(pageSource, /messages=\{messages\}/);
   assert.match(pageSource, /query=\{query\}/);
-  assert.match(filterSource, /const SEARCH_DEBOUNCE_MS = 400/);
+  assert.match(filterSource, /const SEARCH_DEBOUNCE_MS = 200/);
   assert.match(filterSource, /setTimeout\(\(\) =>/);
   assert.match(filterSource, /clearTimeout\(debounceRef\.current\)/);
   assert.match(filterSource, /router\.replace\(href, \{ scroll: false \}\)/);
@@ -224,21 +234,24 @@ test("patient filters navigate automatically with debounce and stale-request pro
 });
 
 test("patient list actions use the shared pill control radius", async () => {
-  const [styles, page, filters, modal, form, error] = await Promise.all([
-    readSource("components/control-styles.js"),
-    readSource("app/(private)/patients/page.js"),
-    readSource("components/patient-filters.js"),
-    readSource("components/new-patient-modal.js"),
-    readSource("components/patient-form.js"),
-    readSource("app/(private)/patients/error.js"),
-  ]);
+  const [styles, page, actions, filters, modal, form, error] =
+    await Promise.all([
+      readSource("components/control-styles.js"),
+      readSource("app/(private)/patients/page.js"),
+      readSource("components/patient-assessment-actions.js"),
+      readSource("components/patient-filters.js"),
+      readSource("components/new-patient-modal.js"),
+      readSource("components/patient-form.js"),
+      readSource("app/(private)/patients/error.js"),
+    ]);
 
   assert.match(styles, /CONTROL_RADIUS_CLASS = "control-pill rounded-full"/);
-  for (const source of [page, filters, modal, error]) {
+  for (const source of [page, actions, filters, modal, error]) {
     assert.match(source, /CONTROL_RADIUS_CLASS/);
   }
   assert.match(page, /newPatientButtonClass[\s\S]*CONTROL_RADIUS_CLASS/);
-  assert.equal(page.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 8);
+  assert.equal(page.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 6);
+  assert.equal(actions.match(/\$\{CONTROL_RADIUS_CLASS\}/g)?.length, 2);
   assert.match(modal, /controlRadiusClass=\{CONTROL_RADIUS_CLASS\}/);
   assert.match(form, /controlRadiusClass = "rounded-full"/);
   assert.equal(form.match(/\$\{controlRadiusClass\}/g)?.length, 3);

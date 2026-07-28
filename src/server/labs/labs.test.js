@@ -20,6 +20,7 @@ import {
 } from "@/server/labs/validation";
 import {
   LAB_ROW_ERROR_CODES,
+  normalizeLabCollectedDate,
   normalizeLabCsvRow,
   parseLabCsvRows,
   validateNormalizedLabRow,
@@ -91,6 +92,16 @@ test("valid CSV metadata is normalized safely and content is hashed", async () =
   assert.equal(JSON.stringify(result).includes(templateContent), false);
 });
 
+test("UTF-8 BOM files exported by spreadsheet apps are accepted", async () => {
+  const file = new File([`\uFEFF${templateContent}`], "spreadsheet.csv", {
+    type: "text/csv",
+  });
+
+  const result = await validateLabCsvFile(file, 1024);
+
+  assert.equal(result.originalFileName, "spreadsheet.csv");
+});
+
 test("lab rows trim fields and normalize MRN and test code", () => {
   const csv = [
     "mrn,collected_date,test_code,test_name,value,unit,ref_low,ref_high",
@@ -108,6 +119,37 @@ test("lab rows trim fields and normalize MRN and test code", () => {
     testCode: "HBA1C",
     value: "6.4",
   });
+});
+
+test("lab dates accept common spreadsheet formats and normalize to ISO", () => {
+  for (const [input, expected] of [
+    ["2026-07-02", "2026-07-02"],
+    ["2026/7/2", "2026-07-02"],
+    ["7/2/2026", "2026-07-02"],
+    ["07/02/2026", "2026-07-02"],
+    ["7-2-2026", "2026-07-02"],
+    ["7/28/2026", "2026-07-28"],
+  ]) {
+    assert.equal(normalizeLabCollectedDate(input), expected);
+  }
+
+  for (const invalid of [
+    "2026-02-30",
+    "2/30/2026",
+    "28/7/2026",
+    "7/2/26",
+    "July 2, 2026",
+  ]) {
+    assert.equal(normalizeLabCollectedDate(invalid), null);
+  }
+
+  const fields = {
+    mrn: "PT-100",
+    collected_date: "7/2/2026",
+    test_code: "HBA1C",
+    value: "6.4",
+  };
+  assert.equal(normalizeLabCsvRow(fields).collectedDate, "2026-07-02");
 });
 
 test("row validation emits every required stable error code", () => {
@@ -153,6 +195,10 @@ test("row validation emits every required stable error code", () => {
   ]);
   assert.deepEqual(validate({ collected_date: "2026-02-30" }), [
     LAB_ROW_ERROR_CODES.INVALID_COLLECTED_DATE,
+  ]);
+  assert.deepEqual(validate({ collected_date: "7/2/2026" }), []);
+  assert.deepEqual(validate({ collected_date: "7/27/2026" }), [
+    LAB_ROW_ERROR_CODES.FUTURE_COLLECTED_DATE,
   ]);
   assert.deepEqual(validate({ collected_date: "2026-07-27" }), [
     LAB_ROW_ERROR_CODES.FUTURE_COLLECTED_DATE,
@@ -253,13 +299,16 @@ test("every stored import status has readable presentation and unknown is safe",
 });
 
 test("lab upload UI and API remain protected, accessible, and server parsed", async () => {
-  const [page, form, route, templateRoute, validation] = await Promise.all([
-    readFile("src/app/(private)/lab-uploads/page.js", "utf8"),
-    readFile("src/components/lab-csv-upload-form.js", "utf8"),
-    readFile("src/app/api/private/lab-imports/route.js", "utf8"),
-    readFile("src/app/api/private/lab-imports/template/route.js", "utf8"),
-    readFile("src/server/labs/validation.js", "utf8"),
-  ]);
+  const [page, detailPage, form, reportLink, route, templateRoute, validation] =
+    await Promise.all([
+      readFile("src/app/(private)/lab-uploads/page.js", "utf8"),
+      readFile("src/app/(private)/lab-uploads/[importId]/page.js", "utf8"),
+      readFile("src/components/lab-csv-upload-form.js", "utf8"),
+      readFile("src/components/lab-import-report-link.js", "utf8"),
+      readFile("src/app/api/private/lab-imports/route.js", "utf8"),
+      readFile("src/app/api/private/lab-imports/template/route.js", "utf8"),
+      readFile("src/server/labs/validation.js", "utf8"),
+    ]);
 
   assert.match(page, /requireCurrentClinician/);
   assert.match(page, /<table/);
@@ -268,6 +317,11 @@ test("lab upload UI and API remain protected, accessible, and server parsed", as
   assert.match(form, /<label/);
   assert.match(form, /type="file"/);
   assert.match(form, /aria-invalid/);
+  assert.match(form, /router\.refresh/);
+  assert.doesNotMatch(form, /router\.push/);
+  assert.match(form, /status=\$\{filter\}/);
+  assert.match(form, /labUploadReportHint/);
+  assert.match(form, /viewImportValidation/);
   assert.match(route, /server\/labs\/http/);
   assert.match(templateRoute, /withClinicianAuthentication/);
   assert.match(validation, /createHash\("sha256"\)/);
@@ -278,5 +332,30 @@ test("lab upload UI and API remain protected, accessible, and server parsed", as
   assert.match(page, /acceptedRows/);
   assert.match(page, /rejectedRows/);
   assert.match(page, /duplicateRows/);
+  assert.match(page, /lg:grid-cols-2/);
+  assert.match(page, /labTemplateHeading/);
+  assert.match(page, /<LabImportReportLink/);
+  assert.match(
+    page,
+    /bg-teal-100\/80 px-4 py-3 text-center font-bold text-teal-900/,
+  );
+  assert.equal(
+    [
+      ...page.matchAll(
+        /<th(?:\s|>)[\s\S]*?className="([^"]+)"[\s\S]*?scope="col"/g,
+      ),
+    ].every(([, className]) => className.includes("text-center")),
+    true,
+  );
+  assert.equal(
+    [
+      ...detailPage.matchAll(
+        /<th(?:\s|>)[\s\S]*?className="([^"]+)"[\s\S]*?scope="col"/g,
+      ),
+    ].every(([, className]) => className.includes("text-center")),
+    true,
+  );
+  assert.match(reportLink, /viewImportReportTooltip/);
+  assert.match(reportLink, /role="tooltip"/);
   assert.doesNotMatch(form, /createHash|fileSha256|prisma/);
 });

@@ -150,6 +150,14 @@ export default async function LabImportDetailPage({ params, searchParams }) {
             </div>
           ))}
         </dl>
+        {labImport.rejectedRows > 0 ? (
+          <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-950 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
+            {messages.labRejectedReasonNotice.replace(
+              "{count}",
+              String(labImport.rejectedRows),
+            )}
+          </p>
+        ) : null}
       </div>
 
       <nav
@@ -205,7 +213,7 @@ export default async function LabImportDetailPage({ params, searchParams }) {
                       messages.validationErrors,
                     ].map((heading) => (
                       <th
-                        className="px-3 py-3 text-start"
+                        className="px-3 py-3 text-center"
                         key={heading}
                         scope="col"
                       >

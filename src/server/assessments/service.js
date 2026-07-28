@@ -10,6 +10,9 @@ import {
 } from "@/server/assessments/email";
 
 export const ASSESSMENT_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+export const ASSESSMENT_RETRY_DELAY_MS = 5 * 60 * 1000;
+export const ASSESSMENT_RETRY_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const ASSESSMENT_MAX_SEND_ATTEMPTS = 3;
 export const ACTIVE_QUESTIONNAIRE_CODE = "dsma-8";
 
 export class AssessmentServiceError extends Error {
@@ -163,6 +166,7 @@ const deliveryLookupSelect = Object.freeze({
       archivedAt: true,
       firstName: true,
       lastName: true,
+      mrn: true,
     },
   },
   questionnaire: { select: { title: true } },
@@ -255,6 +259,8 @@ export const deliverAssessment = async (
             assessment.id,
             attemptNumber,
           ),
+          patientFirstName: assessment.patient.firstName,
+          patientMrn: assessment.patient.mrn,
           patientName:
             `${assessment.patient.firstName} ${assessment.patient.lastName}`.trim(),
           questionnaireTitle: assessment.questionnaire.title,
@@ -272,6 +278,7 @@ export const deliverAssessment = async (
             sendAttempts: { increment: 1 },
             lastSendError: safeError.message,
             emailProviderMessageId: null,
+            updatedAt: now,
           },
           select: ASSESSMENT_PUBLIC_SELECT,
         });
@@ -354,14 +361,32 @@ export const createAssessment = async (
 export const processDueAssessments = async (
   prismaClient,
   {
+    assessmentIds,
     now = new Date(),
     limit = 50,
     deliver = deliverAssessment,
+    maxSendAttempts = ASSESSMENT_MAX_SEND_ATTEMPTS,
+    retryDelayMs = ASSESSMENT_RETRY_DELAY_MS,
+    retryWindowMs = ASSESSMENT_RETRY_WINDOW_MS,
     ...deliveryOptions
   } = {},
 ) => {
+  const retryBefore = new Date(now.getTime() - retryDelayMs);
+  const retryAfter = new Date(now.getTime() - retryWindowMs);
   const due = await prismaClient.assessment.findMany({
-    where: { status: "SCHEDULED", scheduledFor: { lte: now } },
+    where: {
+      ...(assessmentIds ? { id: { in: assessmentIds } } : {}),
+      scheduledFor: { lte: now },
+      OR: [
+        { status: "SCHEDULED" },
+        {
+          status: "FAILED",
+          sendAttempts: { lt: maxSendAttempts },
+          scheduledFor: { gte: retryAfter },
+          updatedAt: { lte: retryBefore },
+        },
+      ],
+    },
     orderBy: [{ scheduledFor: "asc" }, { id: "asc" }],
     take: limit,
     select: { id: true },

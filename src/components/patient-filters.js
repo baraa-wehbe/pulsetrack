@@ -19,7 +19,7 @@ import {
   PATIENT_SYNC_STATUS_VALUES,
 } from "@/lib/patient-validation";
 
-const SEARCH_DEBOUNCE_MS = 400;
+const SEARCH_DEBOUNCE_MS = 200;
 
 const filterLabel = (messages, kind, value) =>
   messages[PATIENT_BADGE_MAPPINGS[kind][value].translationKey];
